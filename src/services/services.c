@@ -1,0 +1,31 @@
+#include "services.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include "renderer.h"
+#include "input.h"
+#include "texture_manager.h"
+#include "../core/types.h"
+
+static Services g_services;
+TextureManager* g_texman = NULL; /* global for quick projectile sheet src access */
+Services* services_get(void){ return &g_services; }
+
+void services_init(Services* s){
+  s->display_w = DISPLAY_W; s->display_h = DISPLAY_H;
+  s->window = SDL_CreateWindow("Newton Combat", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, s->display_w, s->display_h, 0);
+  if(!s->window) fprintf(stderr,"Window fail %s\n", SDL_GetError());
+  s->sdl_renderer = SDL_CreateRenderer(s->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+  s->renderer = renderer_create(s->sdl_renderer);
+  s->input = input_create();
+  s->texman = texman_create(s->sdl_renderer, "./assets/images");
+  texman_load_textures(s->texman, 1337u);
+  g_texman = s->texman;
+}
+
+void services_shutdown(Services* s){
+  if(s->texman) { texman_destroy(s->texman); g_texman=NULL; }
+  if(s->input) input_destroy(s->input);
+  if(s->renderer) renderer_destroy(s->renderer);
+  if(s->sdl_renderer) SDL_DestroyRenderer(s->sdl_renderer);
+  if(s->window) SDL_DestroyWindow(s->window);
+}

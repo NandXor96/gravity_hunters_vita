@@ -1,0 +1,12 @@
+#pragma once
+#include "../app/scene.h"
+
+typedef struct MenuItem { const char* label; SceneID target; } MenuItem;
+
+typedef struct SceneMenuState { struct Services* svc; MenuItem* items; int count; int selected; } SceneMenuState;
+
+void scene_menu_enter(Scene* s);
+void scene_menu_leave(Scene* s);
+void scene_menu_handle_input(Scene* s, const struct InputState* in);
+void scene_menu_update(Scene* s, float dt);
+void scene_menu_render(Scene* s, struct Renderer* r);

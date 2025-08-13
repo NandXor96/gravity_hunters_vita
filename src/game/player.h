@@ -1,0 +1,29 @@
+#pragma once
+#include "entity.h"
+#include "../core/math.h"
+#include "../services/input.h"
+
+struct World; // forward
+typedef struct Player
+{
+    Entity e;
+    int id;
+    bool alive;
+    float respawn_timer;
+    int shooter_index;
+    struct World *world;  // back-reference
+    InputState input;     // last input snapshot
+    bool fire_was_down;   // previous frame fire state for edge-trigger
+    float rotation_speed; // radians per second
+    int health;
+    int max_health; // for HUD normalization
+    struct Weapon *weapon;
+    float current_shot_speed; // runtime adjustable shot speed clamped to weapon min/max
+} Player;
+Player *player_create(SDL_Texture *tex);
+void player_destroy(Player *p);
+void player_fly(Player *p, const InputState *in, float dt);
+bool player_shoot(Player *p, struct World *w, float strength);
+void player_set_input(Player *p, const InputState *in);
+void player_on_kill(Player *p);
+OBB player_collider(const Player *p);
