@@ -12,7 +12,7 @@ Services* services_get(void){ return &g_services; }
 
 void services_init(Services* s){
   s->display_w = DISPLAY_W; s->display_h = DISPLAY_H;
-  s->window = SDL_CreateWindow("Newton Combat", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, s->display_w, s->display_h, 0);
+  s->window = SDL_CreateWindow("Gravity Hunters", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, s->display_w, s->display_h, 0);
   if(!s->window) fprintf(stderr,"Window fail %s\n", SDL_GetError());
   s->sdl_renderer = SDL_CreateRenderer(s->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   s->renderer = renderer_create(s->sdl_renderer);

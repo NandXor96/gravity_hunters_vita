@@ -16,7 +16,7 @@ if(BUILD_VITA)
   include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 endif()
 
-project(newton-combat)
+project(gravity_hunters)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -31,8 +31,8 @@ if(BUILD_VITA)
   target_link_libraries(${PROJECT_NAME}
     ${SDL2_STATIC_LIBRARIES} ${FREETYPE_LIBRARIES}
     SDL2_image freetype bz2 SDL2_ttf freetype webpdemux webp png jpeg z pthread m)
-  set(VITA_APP_NAME "Newton Combat")
-  set(VITA_TITLEID  "NWTNCMBT1")
+  set(VITA_APP_NAME "Gravity Hunters")
+  set(VITA_TITLEID  "GRAVHUNT1")
   set(VITA_VERSION  "01.00")
   vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME})
   vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self

@@ -11,11 +11,11 @@ make vita
 ```
 Artifacts (.vpk) end up in `build/vita`.
 
-## Build for Development (Desktop / PC)
+## Testbuild (PC)
 
 Dependencies: SDL2 development libraries.
 
 ```
 make pc
-./build/pc/newton-combat
+./build/pc/gravity_hunters
 ```
