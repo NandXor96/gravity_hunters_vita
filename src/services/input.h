@@ -13,6 +13,8 @@ typedef struct InputState
     // Auto-repeat step events (fire true ONLY on the frame a repeat triggers)
     bool speed_up_step, speed_down_step;
     bool turn_left_step, turn_right_step;
+    // Boost button (edge detection handled in gameplay code if needed)
+    bool boost;
     // Raw analog stick values (normalized -1..1)
     float stick_x, stick_y;
     // Derived analog info

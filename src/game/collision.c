@@ -347,15 +347,15 @@ void collision_run(struct World *w, float dt)
     for (int i = 0; i < count; i++)
     {
         Entity *e = list[i];
-        // ensure collider radius initialized if zero
         if (e->collider.radius <= 0.f)
         {
             float rad = fmaxf(e->size.x, e->size.y) * 0.5f;
-            if (rad <= 0.f)
-                rad = 1.f;
+            if (rad <= 0.f) rad = 1.f;
             e->collider.radius = rad;
         }
-        collider_prepare(e); // (19) build world polygon if needed
+        // Build polygon if marked dirty (movement/rotation set flag earlier in frame)
+        if (e->collider.poly_world_dirty)
+            collider_prepare(e);
     }
     for (int i = 0; i < count; i++)
     {

@@ -53,6 +53,7 @@ void input_poll(Input *in, InputState *out)
     out->turn_left = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
     out->turn_right = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
     out->fire = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_A);
+    out->boost = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_B); // placeholder mapping
     out->mod_small = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
     out->mod_large = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
     // Analog (left stick)
@@ -76,6 +77,7 @@ void input_poll(Input *in, InputState *out)
     out->back = ks[SDL_SCANCODE_BACKSPACE];
     out->mod_small = ks[SDL_SCANCODE_LCTRL];
     out->mod_large = ks[SDL_SCANCODE_RCTRL];
+    out->boost = (ks[SDL_SCANCODE_LALT] || ks[SDL_SCANCODE_RALT]);
     // No controller => zero analog.
     out->stick_x = 0.f; out->stick_y = 0.f;
     #endif

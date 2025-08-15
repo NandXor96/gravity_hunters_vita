@@ -20,6 +20,11 @@ static void player_update(Entity *e, float dt)
     Player *p = (Player *)e;
     if (!p)
         return;
+    // Track original position to detect movement for polygon dirty flag
+    float oldx = p->e.pos.x;
+    float oldy = p->e.pos.y;
+    // reset per-frame boost damage flag
+    p->boost_damage_flag = 0;
     // energy regeneration (moved from weapon)
     if (p->energy_regen_rate > 0.f)
     {
@@ -77,31 +82,104 @@ static void player_update(Entity *e, float dt)
         float base_step_normal = 0.02f;
         float base_step_large = 0.05f;
         float step = p->input.mod_large ? base_step_large : (p->input.mod_small ? base_step_small : base_step_normal);
-        if (p->input.turn_left_step)
+    if (p->input.turn_left_step)
         {
             p->e.angle -= step;
             p->e.collider.poly_world_dirty = 1; // mark world poly dirty
         }
-        if (p->input.turn_right_step)
+    if (p->input.turn_right_step)
         {
             p->e.angle += step;
             p->e.collider.poly_world_dirty = 1; // mark world poly dirty
         }
     }
-    // shooting: fire on press edge OR while held if weapon rate allows (auto-fire)
-    if (p->world && p->input.fire)
+    // Boost input now comes from centralized InputState
+    int raw_boost = p->input.boost ? 1 : 0;
+    static int prev_boost = 0;
+    int edge = raw_boost && !prev_boost;
+    if (p->alive)
     {
-        if (!p->fire_was_down)
+        // Neue Semantik:
+        // boost_cost: voller Abzug beim Initial-Press (edge) + gleicher Wert pro Sekunde während Halten.
+        // Wenn beim Edge nicht genug Energie für boost_cost vorhanden: kein Boost (auch kein Halten-Effekt).
+        // Während Halten nur weiter beschleunigen/verstetigen solange genug Energie für die aktuelle Frame-Drain vorhanden ist.
+        float dx = cosf(p->e.angle);
+        float dy = sinf(p->e.angle);
+        static int boosting_session = 0; // 0 = kein aktiver Boost-Hold, 1 = aktiv seit gültigem Edge
+        if (edge)
         {
-            player_shoot(p, p->world, -1.f);
+            if (p->energy >= (float)p->boost_cost)
+            {
+                // initialer voller Kostenabzug
+                p->energy -= (float)p->boost_cost;
+                if (p->energy < 0.f) p->energy = 0.f;
+                boosting_session = 1;
+                // optional kleiner Sofort-Impuls (10% Zielgeschwindigkeit)
+                float tap_speed = p->boost_strength * 0.10f;
+                p->e.vel.x += dx * tap_speed;
+                p->e.vel.y += dy * tap_speed;
+            }
+            else
+            {
+                boosting_session = 0; // kein Boost starten
+            }
         }
-        else
+        // Beenden der Session wenn Taste losgelassen
+        if (!raw_boost)
+            boosting_session = 0;
+        // Laufender Boost: nur wenn Session aktiv und noch Energie vorhanden
+        if (boosting_session && raw_boost)
         {
-            // held: attempt auto fire respecting weapon_can_fire (enforces cooldown & points)
-            player_shoot(p, p->world, -1.f);
+            // Per-Frame Drain berechnen
+            float drain = (float)p->boost_cost * dt; // cost per second -> dt Anteil
+            if (p->energy >= drain && drain > 0.f)
+            {
+                p->energy -= drain;
+                if (p->energy < 0.f) p->energy = 0.f;
+                // Vorwärtsgeschwindigkeit in Richtung Ziel annähern
+                float vx = p->e.vel.x;
+                float vy = p->e.vel.y;
+                float proj = vx * dx + vy * dy; // aktuelle Vorwärtskomponente
+                float target = p->boost_strength;
+                if (target < 0.f) target = 0.f;
+                // sanfte Annäherung (Beschleunigung proportional zum Ziel)
+                float accel = target * 4.f; // ~0.3s auf 95%
+                if (proj < target)
+                {
+                    float add = accel * dt;
+                    if (proj + add > target) add = target - proj;
+                    if (add > 0.f)
+                    {
+                        p->e.vel.x += dx * add;
+                        p->e.vel.y += dy * add;
+                    }
+                }
+            }
+            else
+            {
+                // Nicht genug Energie für weiteren Frame -> Boost endet sofort
+                boosting_session = 0;
+            }
         }
     }
-    p->fire_was_down = p->input.fire;
+    prev_boost = raw_boost;
+
+    // Apply velocity to position
+    p->e.pos.x += p->e.vel.x * dt;
+    p->e.pos.y += p->e.vel.y * dt;
+    // Mark for rebuild AFTER movement for next collision pass
+    if (p->e.pos.x != oldx || p->e.pos.y != oldy)
+        p->e.collider.poly_world_dirty = 1;
+    // Friction (exponential-ish linear damp)
+    float friction_k = 4.0f; // tweakable
+    p->e.vel.x -= p->e.vel.x * friction_k * dt;
+    p->e.vel.y -= p->e.vel.y * friction_k * dt;
+    if (fabsf(p->e.vel.x) < 0.5f) p->e.vel.x = 0.f;
+    if (fabsf(p->e.vel.y) < 0.5f) p->e.vel.y = 0.f;
+
+    // shooting disabled in same frame as boost edge? keep it simple: still allow
+    if (p->world && p->input.fire)
+        player_shoot(p, p->world, -1.f);
 }
 static void player_destroy_entity(Entity *e) { player_destroy((Player *)e); }
 static void player_on_hit_entity(Entity *e, Entity *hitter)
@@ -147,10 +225,50 @@ static void player_on_collide_entity(Entity *self, Entity *other)
         return;
     if (other->type == ENT_PLANET || other->type == ENT_ENEMY)
     {
-        // simple health decrement on physical impact
-        p->health -= 1;
-        if (p->health <= 0)
-            p->alive = false;
+        float vx = p->e.vel.x;
+        float vy = p->e.vel.y;
+        float speed = sqrtf(vx*vx + vy*vy);
+        // Separation normal: from other center to player center (avoid using velocity dir)
+        float dx = p->e.pos.x - other->pos.x;
+        float dy = p->e.pos.y - other->pos.y;
+        float dist = sqrtf(dx*dx + dy*dy);
+        float nx, ny;
+        if (dist > 1e-4f) { nx = dx / dist; ny = dy / dist; }
+        else if (speed > 1e-4f) { nx = vx / speed; ny = vy / speed; }
+        else { nx = 1.f; ny = 0.f; }
+        // Approx penetration using circles (player radius + other radius - dist) if other has radius
+        float pr = p->e.collider.radius;
+        float orad = other->collider.radius > 0.f ? other->collider.radius : fmaxf(other->size.x, other->size.y)*0.5f;
+        float penetration = (pr + orad) - dist; // can be negative (no overlap in circle approximation)
+        if (penetration > 0.f)
+        {
+            // Only push out along n; limit push to avoid overshoot
+            float push = penetration < 8.f ? penetration : 8.f;
+            // If velocity points outward already, reduce push (prevents 'stick')
+            float vdotn = vx*nx + vy*ny;
+            if (vdotn > 0.f) push *= 0.3f;
+            p->e.pos.x += nx * push;
+            p->e.pos.y += ny * push;
+            p->e.collider.poly_world_dirty = 1; // mark moved
+            // Velocity response: only modify inward component
+            if (vdotn < 0.f)
+            {
+                float restitution = 0.25f; // damped bounce
+                float remove = (1.f + restitution) * vdotn; // vdotn negative
+                p->e.vel.x -= nx * remove;
+                p->e.vel.y -= ny * remove;
+            }
+            // Damage only if inward impact speed large enough (use inward component NOT total speed)
+            const float impact_threshold = 60.f; // tune: lower so damage actually occurs
+            float inward_speed = -vdotn; // positive if moving into object
+            if (p->boost_damage_flag == 0 && inward_speed > impact_threshold)
+            {
+                int dmg = (int)(inward_speed * 0.02f) + 1; if (dmg < 1) dmg = 1;
+                p->health -= dmg;
+                if (p->health <= 0) p->alive = false;
+                p->boost_damage_flag = 1; // only set when damage applied
+            }
+        }
     }
 }
 static const EntityVTable PLAYER_VT = {player_create_entity, player_destroy_entity, player_update, player_render, player_on_hit_entity, player_on_collide_entity};
@@ -189,6 +307,10 @@ Player *player_create(SDL_Texture *tex)
     p->energy_max = 1000;
     p->energy = (float)p->energy_max;
     p->energy_regen_rate = 100.f;
+    // boost defaults
+    p->boost_strength = 100.f;
+    p->boost_cost = 400;
+    p->boost_damage_flag = 0;
     return p;
 }
 void player_destroy(Player *p)

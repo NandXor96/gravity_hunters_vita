@@ -23,6 +23,10 @@ typedef struct Player
     float energy;          // current energy (was current_shot_points)
     int   energy_max;      // max energy (was max_shot_points)
     float energy_regen_rate; // per second (was regen_rate)
+    // Boost
+    float boost_strength;  // additive velocity impulse (pixels/sec)
+    int   boost_cost;      // energy per boost
+    int   boost_damage_flag; // frame damage flag (reset each update)
 } Player;
 Player *player_create(SDL_Texture *tex);
 void player_destroy(Player *p);

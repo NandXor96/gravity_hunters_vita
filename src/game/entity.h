@@ -37,9 +37,9 @@ typedef enum {
 typedef struct EntityCollider {
     float radius;          // bounding circle radius
     int   poly_count;      // 0 => no polygon
-    Vec2  poly_world[30];        // world polygon points
-    Vec2  poly_local[30];  // original local polygon points (unchanged)
-    bool   poly_world_dirty;   // 0: poly_world[] invalid, 1: poly_world[] contains world coords
+    Vec2  poly_world[30];   // world polygon points (rebuilt when dirty)
+    Vec2  poly_local[30];   // original local polygon points (unchanged)
+    bool  poly_world_dirty; // 1: needs world rebuild, 0: poly_world[] up-to-date
     unsigned int shape; // bitmask of ColliderShapeFlags
 } EntityCollider;
 
