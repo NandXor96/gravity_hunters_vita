@@ -38,11 +38,11 @@ struct TextureSpec
 };
 static const struct TextureSpec SPECS[TEX__COUNT] = {
     [TEX_PLANETS_SHEET] = {"planets", "planets_atlas.png", NULL, TEXF_SHEET, 128, 128},
-    [TEX_PLAYER] = {"player", "spaceship.png", NULL, 0, 0, 0},
+    [TEX_PLAYER] = {"player", "player.png", NULL, 0, 0, 0},
     [TEX_BG_STARFIELD] = {"bg_starfield", NULL, gen_nebula, 0, 0, 0},
     [TEX_ICONS_SHEET] = {"icons", "hud_atlas.png", NULL, TEXF_SHEET, 32, 32},
     [TEX_PROJECTILES_SHEET] = {"projectiles", NULL, gen_projectiles_sheet_proc, TEXF_SHEET, 8, 8},
-    [TEX_ENEMIES_SHEET] = {"enemies", "enemies_atlas.png", NULL, TEXF_SHEET, 128, 128},
+    [TEX_ENEMIES_SHEET] = {"enemies", "enemies_atlas.png", NULL, TEXF_SHEET, 32, 32},
     [TEX_EXPLOSIONS_SHEET] = {"explosions", NULL, NULL, TEXF_SHEET, 0, 0}, /* generated separately (multi-frame) */
 };
 TextureManager *texman_create(SDL_Renderer *sdl, const char *assets_root)

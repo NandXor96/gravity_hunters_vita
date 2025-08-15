@@ -44,7 +44,7 @@ static Entity *planet_create_entity(void *params)
     struct { float x; float y; float radius; float mass; SDL_Texture *tex; SDL_Rect src; } *pr = params;
     return (Entity *)planet_create(pr->x, pr->y, pr->radius, pr->mass, pr->tex, pr->src);
 }
-static const EntityVTable PLANET_VT = {planet_create_entity, planet_destroy_entity, planet_update, planet_render, planet_on_hit_entity};
+static const EntityVTable PLANET_VT = {planet_create_entity, planet_destroy_entity, planet_update, planet_render, planet_on_hit_entity, NULL};
 
 Planet *planet_create(float x, float y, float radius, float mass, SDL_Texture *tex, SDL_Rect src)
 {
@@ -54,11 +54,15 @@ Planet *planet_create(float x, float y, float radius, float mass, SDL_Texture *t
     p->mass = mass;
     p->e.texture = tex;
     p->src = src;
-    p->e.size.x = radius;
-    p->e.size.y = radius;
+    p->e.size.x = radius*2;
+    p->e.size.y = radius*2;
     p->e.vt = &PLANET_VT;
     p->e.type = ENT_PLANET;
     p->e.pos.x = x; p->e.pos.y = y;
+    p->e.is_dynamic = false;
+    p->e.collider.radius = radius;
+    p->e.collider.poly_count = 0;
+    p->e.collider.shape = COLLIDER_SHAPE_CIRCLE;
     p->world = NULL; /* set by world_add_planet */
     (void)mass; // mass currently unused (no gravity system)
     return p;

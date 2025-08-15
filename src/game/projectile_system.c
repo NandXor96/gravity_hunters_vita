@@ -58,18 +58,42 @@ bool projectile_system_fire(ProjectileSystem *ps, float world_time, int shooter_
     Vec2 vel = {dir.x * strength, dir.y * strength};
     int damage = 1;
     int variant = 0;
-    if (owner->type == ENT_PLAYER) {
-        Player *pl = (Player *)owner; if (pl->weapon) { damage = pl->weapon->damage; variant = pl->weapon->projectile_variant; }}
-    else if (owner->type == ENT_ENEMY) { Enemy *en = (Enemy *)owner; if (en->weapon) { damage = en->weapon->damage; variant = en->weapon->projectile_variant; }}
+    if (owner->type == ENT_PLAYER)
+    {
+        Player *pl = (Player *)owner;
+        if (pl->weapon)
+        {
+            damage = pl->weapon->damage;
+            variant = pl->weapon->projectile_variant;
+        }
+    }
+    else if (owner->type == ENT_ENEMY)
+    {
+        Enemy *en = (Enemy *)owner;
+        if (en->weapon)
+        {
+            damage = en->weapon->damage;
+            variant = en->weapon->projectile_variant;
+        }
+    }
     /* Clamp variant */
-    int maxv = texman_projectile_variant_count(ps->texman); if (maxv>0) { if (variant < 0) variant = 0; if (variant >= maxv) variant = maxv-1; }
+    int maxv = texman_projectile_variant_count(ps->texman);
+    if (maxv > 0)
+    {
+        if (variant < 0)
+            variant = 0;
+        if (variant >= maxv)
+            variant = maxv - 1;
+    }
     /* Texture & color */
     SDL_Texture *sheet = texman_projectiles_texture(ps->texman);
     SDL_Rect src = texman_projectile_src(ps->texman, variant);
-    Uint8 cr=255,cg=255,cb=255; texman_projectile_variant_color(ps->texman, variant, &cr,&cg,&cb);
+    Uint8 cr = 255, cg = 255, cb = 255;
+    texman_projectile_variant_color(ps->texman, variant, &cr, &cg, &cb);
     SDL_Texture *proj_tex = sheet; /* store sheet; projectile render can choose src rect */
     Projectile *p = projectile_create(owner, owner->pos, vel, proj_tex, damage, cr, cg, cb);
-    if(p) p->variant = variant;
+    if (p)
+        p->variant = variant;
     if (!p)
         return false;
     pool->items[pool->head++] = p;
@@ -83,7 +107,8 @@ void projectile_system_update(ProjectileSystem *ps, struct Planet **planets, int
         return;
     float margin_x = oob_margin_factor * (float)display_w;
     float margin_y = oob_margin_factor * (float)display_h;
-    ProjectileUpdateCtx ctx; memset(&ctx,0,sizeof(ctx));
+    ProjectileUpdateCtx ctx;
+    memset(&ctx, 0, sizeof(ctx));
     ctx.planets = planets;
     ctx.planet_count = planet_count;
     ctx.player = player;

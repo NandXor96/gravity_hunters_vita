@@ -19,6 +19,10 @@ typedef struct Player
     int max_health; // for HUD normalization
     struct Weapon *weapon;
     float current_shot_speed; // runtime adjustable shot speed clamped to weapon min/max
+    // Energy system (moved from Weapon)
+    float energy;          // current energy (was current_shot_points)
+    int   energy_max;      // max energy (was max_shot_points)
+    float energy_regen_rate; // per second (was regen_rate)
 } Player;
 Player *player_create(SDL_Texture *tex);
 void player_destroy(Player *p);

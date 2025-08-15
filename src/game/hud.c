@@ -245,10 +245,10 @@ static float hud_value_weapon_cooldown(struct World *w, void *user)
     Player *p = (Player *)user;
     if (!p || !p->weapon || !w)
         return 0.f;
-    float maxp = (float)p->weapon->max_shot_points;
+    float maxp = (float)p->energy_max;
     if (maxp <= 0.f)
         return 0.f;
-    float v = p->weapon->current_shot_points / maxp;
+    float v = p->energy / maxp;
     if (v < 0.f)
         v = 0.f;
     else if (v > 1.f)

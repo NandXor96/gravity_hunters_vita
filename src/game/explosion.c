@@ -30,7 +30,7 @@ static void explosion_render(Entity* e, struct Renderer* r) {
     SDL_FRect dst = { ex->e.pos.x - w*0.5f, ex->e.pos.y - h*0.5f, w, h };
     renderer_draw_texture(r, sheet, &src, &dst, 0.f);
 }
-static const EntityVTable EXPLOSION_VT = { explosion_create_entity, explosion_destroy_entity, explosion_update, explosion_render, explosion_on_hit };
+static const EntityVTable EXPLOSION_VT = { explosion_create_entity, explosion_destroy_entity, explosion_update, explosion_render, explosion_on_hit, NULL };
 
 Explosion* explosion_create(int type, float x, float y, float scale) {
     Services* svc = services_get(); if(!svc || !svc->texman) return NULL;

@@ -44,7 +44,7 @@ void scene_game_enter(Scene *s)
     s->state = st;
     st->svc = app_services();
     // Create world with random seed (placeholder fixed seed for now)
-    st->world = world_create(st->svc, 1245u, 15);
+    st->world = world_create(st->svc, 9u, 14);
     if(st->world){
         // Example: 5 minute limit; change as needed. Use -1 for infinite.
         world_set_time_limit(st->world, 20.f); // currently infinite; adjust externally later.

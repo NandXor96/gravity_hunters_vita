@@ -139,7 +139,7 @@ static void projectile_on_hit_entity(Entity *e, Entity *hitter)
         return;
     ((Projectile *)e)->active = false;
 }
-static const EntityVTable PROJECTILE_VT = {projectile_create_entity, projectile_destroy_entity, projectile_update_entity, projectile_render_entity, projectile_on_hit_entity};
+static const EntityVTable PROJECTILE_VT = {projectile_create_entity, projectile_destroy_entity, projectile_update_entity, projectile_render_entity, projectile_on_hit_entity, NULL};
 
 Projectile *projectile_create(Entity *owner, Vec2 pos, Vec2 vel, SDL_Texture *tex, int damage, Uint8 cr, Uint8 cg, Uint8 cb)
 {
@@ -162,6 +162,11 @@ Projectile *projectile_create(Entity *owner, Vec2 pos, Vec2 vel, SDL_Texture *te
     trail_init(&p->trail);
     // Seed initial trail point so first rendered segment starts exactly am Mittelpunkt
     trail_add_point(&p->trail, p->e.pos);
+    // collider config
+    p->e.collider.radius = 2; // Should be 4, but 2 provides a nicer gameplay
+    p->e.collider.poly_count = 0;
+    p->e.collider.shape = COLLIDER_SHAPE_CIRCLE;
+    p->e.is_dynamic = false; // do not push others
     return p;
 }
 void projectile_destroy(Projectile *p) { free(p); }
@@ -191,21 +196,6 @@ static inline void projectile_apply_gravity_from_planet(Projectile *p, const str
     p->e.vel.y += accel * dy * inv_dist * dt;
 }
 // Test collision with a single planet using current position
-static inline void projectile_collide_planet(Projectile *p, const struct Planet *pl)
-{
-    float dx = p->e.pos.x - pl->e.pos.x;
-    if (dx > pl->radius || dx < -pl->radius)
-        return; // AABB reject
-    float dy = p->e.pos.y - pl->e.pos.y;
-    if (dy > pl->radius || dy < -pl->radius)
-        return; // AABB reject
-    float dist2 = dx * dx + dy * dy;
-    if (dist2 <= pl->radius_sq)
-    {
-        if (pl->e.vt && pl->e.vt->on_hit)
-            pl->e.vt->on_hit((Entity *)pl, (Entity *)p);
-    }
-}
 static void projectile_integrate(Projectile *p, float dt)
 {
     p->e.pos.x += p->e.vel.x * dt;
@@ -222,61 +212,19 @@ static bool projectile_check_oob(Projectile *p, const ProjectileUpdateCtx *ctx)
     return false;
 }
 // planet collision now handled in combined gravity pass
-static void projectile_collide_player(Projectile *p, const ProjectileUpdateCtx *ctx)
-{
-    struct Player *pl = ctx->player;
-    if (!pl || !pl->alive || !p->active)
-        return;
-    float hx = pl->e.pos.x, hy = pl->e.pos.y;
-    float hw = pl->e.size.x * 0.5f, hh = pl->e.size.y * 0.5f;
-    if (p->e.pos.x >= hx - hw && p->e.pos.x <= hx + hw && p->e.pos.y >= hy - hh && p->e.pos.y <= hy + hh)
-    {
-        if (pl->e.vt && pl->e.vt->on_hit)
-            pl->e.vt->on_hit((Entity *)pl, (Entity *)p);
-    }
-}
-static void projectile_collide_enemies(Projectile *p, const ProjectileUpdateCtx *ctx)
-{
-    if (!p->active)
-        return;
-    for (int i = 0; i < ctx->enemy_count && p->active; i++)
-    {
-        struct Enemy *en = ctx->enemies[i];
-        if (!en || !en->alive)
-            continue;
-        float hx = en->e.pos.x, hy = en->e.pos.y;
-        float hw = en->e.size.x * 0.5f, hh = en->e.size.y * 0.5f;
-        if (p->e.pos.x >= hx - hw && p->e.pos.x <= hx + hw && p->e.pos.y >= hy - hh && p->e.pos.y <= hy + hh)
-        {
-            if (en->e.vt && en->e.vt->on_hit)
-                en->e.vt->on_hit((Entity *)en, (Entity *)p);
-        }
-    }
-}
 void projectile_update(Projectile *p, const ProjectileUpdateCtx *ctx)
 {
     if (!p || !p->active)
         return;
     p->flight_time += ctx->dt;
-    // Single loop: gravity + immediate collision test per planet (pre-integration)
-    for (int i = 0; i < ctx->planet_count && p->active; ++i)
-    {
-        struct Planet *pl = ctx->planets[i];
-        if (!pl)
-            continue;
-        projectile_collide_planet(p, pl);
-        projectile_apply_gravity_from_planet(p, pl, ctx->dt);
-    }
+    // Apply gravity from planets only (collision handled by generic system after integration)
+    for (int i = 0; i < ctx->planet_count && p->active; ++i){
+        struct Planet *pl = ctx->planets[i]; if(!pl) continue; projectile_apply_gravity_from_planet(p, pl, ctx->dt); }
     if (!p->active)
         return;
     projectile_integrate(p, ctx->dt);
     projectile_update_trail(p);
     if (projectile_check_oob(p, ctx))
         return;
-    if (!p->active)
-        return;
-    projectile_collide_player(p, ctx);
-    if (!p->active)
-        return;
-    projectile_collide_enemies(p, ctx);
+    // Collision with player/enemies/planets now in collision system
 }

@@ -10,6 +10,7 @@
 #include "projectile.h"
 #include "explosion.h"
 #include "hud.h"
+#include "collision.h"
 #include "../services/renderer.h"
 #include "../services/texture_manager.h"
 #include "../services/services.h"
@@ -20,16 +21,17 @@ static float usable_bottom;
 /* Generic placement helper: places a point at least min_dist away from entities.
  * For planets we need variable exclusion radii (planet radius * factor). We pass dynamic radius via param.
  */
-static Vec2 world_place_helper(World *w, float min_dist, float size, int max_attempts)
+static Vec2 world_place_helper(World *w, float min_dist_planets, float min_dist_player, float min_dist_enemies, float size, int max_attempts)
 {
     Vec2 v = {-1.f, -1.f};
+    float half_size = 0.5 * size;
     if (!w)
         return v;
     Services *svc = services_get();
     for (int attempt = 0; attempt < max_attempts; ++attempt)
     {
-        float x = rng_rangef(&w->rng, 40.f + size, svc->display_w - 40.f - size);
-        float y = rng_rangef(&w->rng, 40.f + size, usable_bottom - 40.f - size);
+        float x = rng_rangef(&w->rng, 40.f + half_size, svc->display_w - 40.f - half_size);
+        float y = rng_rangef(&w->rng, 40.f + half_size, usable_bottom - 40.f - half_size);
         bool overlaps = false;
         // planets
         for (int j = 0; j < w->planet_count && !overlaps; ++j)
@@ -39,7 +41,7 @@ static Vec2 world_place_helper(World *w, float min_dist, float size, int max_att
                 continue;
             float dx = x - p->e.pos.x, dy = y - p->e.pos.y;
             float d = sqrtf(dx * dx + dy * dy);
-            float need = p->radius + min_dist + size * 0.5f;
+            float need = p->radius + min_dist_planets + half_size;
             if (d < need)
                 overlaps = true;
         }
@@ -50,7 +52,7 @@ static Vec2 world_place_helper(World *w, float min_dist, float size, int max_att
         {
             float dx = x - w->player->e.pos.x, dy = y - w->player->e.pos.y;
             float player_max = fmaxf(w->player->e.size.x, w->player->e.size.y);
-            if (sqrtf(dx * dx + dy * dy) < (player_max * 0.5f + min_dist))
+            if (sqrtf(dx * dx + dy * dy) < (player_max * 0.5f + min_dist_player + half_size))
                 overlaps = true;
         }
         if (overlaps)
@@ -63,7 +65,7 @@ static Vec2 world_place_helper(World *w, float min_dist, float size, int max_att
                 continue;
             float dx = x - en->e.pos.x, dy = y - en->e.pos.y;
             float enemy_max = fmaxf(en->e.size.x, en->e.size.y);
-            if (sqrtf(dx * dx + dy * dy) < (enemy_max * 0.5f + min_dist))
+            if (sqrtf(dx * dx + dy * dy) < (enemy_max * 0.5f + min_dist_enemies + half_size))
                 overlaps = true;
         }
         if (overlaps)
@@ -91,7 +93,6 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
     w->proj_oob_margin_factor = 0.2f; // default as requested
     projectile_system_init(&w->projsys, svc->texman);
     w->explosion_count = 0;
-    // HUD wird erstellt sobald Player existiert
 
     rng_seed(&w->rng, seed);
 
@@ -107,12 +108,22 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
         usable_bottom = 0.f;
 
     // Planets placement
-    while (planets_area < display_area * max_planet_area / 100)
+    int attempts = 0;
+    float min_radius = 40.f;
+    float max_radius = 80.f;
+    while (planets_area < display_area * max_planet_area / 100 && attempts < 100)
     {
-        float radius = rng_rangef(&w->rng, 40.0f, 80.0f);
-        Vec2 pos = world_place_helper(w, radius, radius, 200);
+        float radius = rng_rangef(&w->rng, 40.0f, max_radius);
+        Vec2 pos = world_place_helper(w, 1.2 * radius, 0, 0, 2 * radius, 500);
         if (pos.x < 0.f)
-            break;
+        {
+            printf("Couldn't place planet with radius %f\n", radius);
+            printf("%f < %f\n", planets_area, display_area * max_planet_area / 100);
+            if(max_radius > min_radius)
+                max_radius = radius - 2;
+            attempts++;
+            continue;
+        }
         float mass = M_PI * radius * radius;
         SDL_Texture *tex = texman_get(w->svc->texman, TEX_PLANETS_SHEET);
         SDL_Rect src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, (tex_idx++) % 16);
@@ -125,9 +136,12 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
         planets_area += mass;
     }
 
+    printf("Planets placed: %d\n", w->planet_count);
+    printf("%f < %f\n", planets_area, display_area * max_planet_area / 100);
+
     // Player placement
     {
-        Vec2 ppos = world_place_helper(w, 70.f, 32.f, 300);
+        Vec2 ppos = world_place_helper(w, 32.f, 0, 0, 32.f, 300);
         if (ppos.x < 0.f)
             ppos = (Vec2){svc->display_w * 0.5f, usable_bottom * 0.5f};
         world_add_player(w, ppos.x, ppos.y);
@@ -138,7 +152,7 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
     // Enemies placement (3 initial)
     for (int i = 0; i < 3; ++i)
     {
-        Vec2 epos = world_place_helper(w, 70.f, 32.f, 400);
+        Vec2 epos = world_place_helper(w, 32.f, 150.f, 100.f, 32.f, 400);
         if (epos.x < 0.f)
             break;
         world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y);
@@ -228,7 +242,7 @@ void world_update(World *w, float dt)
     // Spawn new enemies
     for (int i = w->enemy_count; i < 3; ++i)
     {
-        Vec2 epos = world_place_helper(w, 40.f, 32.f, 200);
+        Vec2 epos = world_place_helper(w, 32.f, 150.f, 100.f, 32.f, 400);
         if (epos.x < 0.f)
             break;
         world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y);
@@ -259,6 +273,8 @@ void world_update(World *w, float dt)
     w->explosion_count = write;
     // gravity sources added once at planet creation; no per-frame rebuild
     projectile_system_update(&w->projsys, w->planets, w->planet_count, w->player, w->enemies, w->enemy_count, w->proj_oob_margin_factor, w->svc->display_w, w->svc->display_h, dt, w->time);
+    // Run generic collision system (Phase1: player/enemy/planet)
+    collision_run(w, dt);
     if (w->hud)
         hud_update(w->hud, w, dt);
 }
@@ -274,10 +290,12 @@ static void world_render_entities(World *w, struct Renderer *r)
             p->e.vt->render((Entity *)p, r);
     }
 
+    // Projectiles
+    projectile_system_render(&w->projsys, r);
+
     // Player
     if (w->player && w->player->e.vt && w->player->e.vt->render)
         w->player->e.vt->render((Entity *)w->player, r);
-    projectile_system_render(&w->projsys, r);
 
     // Enemies
     for (int i = 0; i < w->enemy_count; i++)
@@ -306,6 +324,10 @@ void world_render(World *w, struct Renderer *r)
     world_render_entities(w, r);
     if (w->hud)
         hud_render(w->hud, r);
+    // optional collider debug draw (compile-time)
+    #ifdef DEBUG_COLLISION
+    collision_debug_draw(w, r);
+    #endif
 }
 bool world_add_planet(World *w, float x, float y, float radius, float mass, SDL_Texture *tex)
 {

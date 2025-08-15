@@ -5,6 +5,7 @@
 #include "../core/types.h"
 #include "../core/math.h"
 
+
 typedef enum
 {
     ENT_PLAYER,
@@ -24,7 +25,23 @@ typedef struct EntityVTable
     void (*update)(Entity *, float dt);
     void (*render)(Entity *, struct Renderer *);
     void (*on_hit)(Entity *, Entity *hitter);
+    void (*on_collide)(Entity *, Entity *other); // physical contact callback (no extra info, bounce now handled per-entity)
 } EntityVTable;
+
+// Collider shape flags (circle always implicit, polygon optional later)
+typedef enum {
+    COLLIDER_SHAPE_CIRCLE = 1,
+    COLLIDER_SHAPE_POLY   = 2
+} ColliderShapeFlags;
+
+typedef struct EntityCollider {
+    float radius;          // bounding circle radius
+    int   poly_count;      // 0 => no polygon
+    Vec2  poly_world[30];        // world polygon points
+    Vec2  poly_local[30];  // original local polygon points (unchanged)
+    bool   poly_world_dirty;   // 0: poly_world[] invalid, 1: poly_world[] contains world coords
+    unsigned int shape; // bitmask of ColliderShapeFlags
+} EntityCollider;
 
 struct Entity
 {
@@ -37,6 +54,8 @@ struct Entity
     float angle_offset; // render-only orientation adjustment (radians)
     bool active;
     SDL_Texture *texture;
+    EntityCollider collider; // embedded collider
+    bool is_dynamic;         // participates in positional resolution if true
 };
 
 struct Player *entity_create_player(void);
