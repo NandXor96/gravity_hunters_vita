@@ -165,7 +165,7 @@ Player *player_create(SDL_Texture *tex)
     p->e.is_dynamic = true;
     p->e.collider.radius = sqrtf(p->e.size.x * p->e.size.x + p->e.size.y * p->e.size.y) * 0.5f + 1;
     // (19) Basic polygon (from assets/images/player_polygon/polygons.json)
-    static const Vec2 poly_pts[] = {{0, 84}, {2, 107}, {38, 98}, {44, 104}, {82, 104}, {86, 98}, {114, 107}, {127, 104}, {123, 76}, {92, 51}, {86, 25}, {67, 0}, {51, 6}, {35, 51}}; // raw pixel coords
+    static const Vec2 poly_pts[] = {{17,1},{14,5},{14,10},{3,21},{3,27},{13,20},{14,21},{10,26},{10,30},{14,27},{16,29},{20,27},{24,30},{24,26},{20,23},{21,20},{31,27},{31,21},{20,10},{20,5}}; // raw pixel coords
     int poly_total = (int)(sizeof(poly_pts) / sizeof(poly_pts[0]));
     p->e.collider.poly_count = (poly_total > 30) ? 30 : poly_total;
     // Lokale Polygonpunkte (Pixelkoordinaten), dienen für präzisere Kollision.
