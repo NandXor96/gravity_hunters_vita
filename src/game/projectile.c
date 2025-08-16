@@ -163,7 +163,7 @@ Projectile *projectile_create(Entity *owner, Vec2 pos, Vec2 vel, SDL_Texture *te
     // Seed initial trail point so first rendered segment starts exactly am Mittelpunkt
     trail_add_point(&p->trail, p->e.pos);
     // collider config
-    p->e.collider.radius = 2; // Should be 4, but 2 provides a nicer gameplay
+    p->e.collider.radius = 3; // Should be 4, but 3 provides a nicer gameplay
     p->e.collider.poly_count = 0;
     p->e.collider.shape = COLLIDER_SHAPE_CIRCLE;
     p->e.is_dynamic = false; // do not push others

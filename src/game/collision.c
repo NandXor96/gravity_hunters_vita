@@ -85,8 +85,6 @@ static int collision_should_test(Entity *a, Entity *b)
 {
     if (a == b)
         return 0;
-    if (!entity_alive(a) || !entity_alive(b))
-        return 0;
     // Planet vs Planet ignore (both static)
     if (a->type == ENT_PLANET && b->type == ENT_PLANET)
         return 0;

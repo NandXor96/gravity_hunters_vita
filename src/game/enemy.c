@@ -493,6 +493,10 @@ bool enemy_try_shoot(Enemy *en, struct World *w)
 
     // Final shot chosen (best_angle, best_strength). Apply small random jitter to strength
     float final_angle = best_angle + jitter_angle; // keep tiny angle jitter
+    // Normalize angle to [0, 2π)
+    const float TWO_PI = 6.28318530717958647692f;
+    while (final_angle < 0.0f) final_angle += TWO_PI;
+    while (final_angle >= TWO_PI) final_angle -= TWO_PI;
     float final_strength = best_strength * jitter_strength;
     en->e.angle = final_angle;
     en->e.collider.poly_world_dirty = 1; // mark world poly dirty
