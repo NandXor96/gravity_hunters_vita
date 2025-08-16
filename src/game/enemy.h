@@ -31,6 +31,18 @@ typedef struct Enemy
     int health;
     struct Weapon *weapon;
     struct World *world;
+    /* Energy/economy for AI shooting */
+    int   energy_max;
+    float energy; // current energy pool
+    float energy_regen_rate; // per second
+    float shoot_chance; // probability per decision [0..1]
+    /* Cached shot info to skip full direct simulation when neither player nor enemy moved */
+    Vec2  last_shot_player_pos;  // last player pos used for aiming
+    Vec2  last_shot_enemy_pos;   // last enemy pos used for aiming
+    float cached_shot_angle;     // best angle found last time
+    float cached_shot_strength;  // best strength found last time
+    float cached_shot_best_dist; // minimal distance to player for cached shot
+    int   cached_shot_valid;     // boolean-like flag (0/1) if cache is valid
 } Enemy;
 
 // Unified create that sets base fields then dispatches to type-specific initializer

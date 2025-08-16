@@ -11,7 +11,7 @@ void projectile_system_init(ProjectileSystem *ps, TextureManager *tm)
 {
     if (ps)
     {
-        *ps = (ProjectileSystem){0};
+    *ps = (ProjectileSystem){0};
         ps->texman = tm;
     }
 }
@@ -34,15 +34,57 @@ void projectile_system_shutdown(ProjectileSystem *ps)
             destroy_projectile(ps, pool->items[i]);
         }
         pool->head = 0;
+    pool->occupied = 0;
+    pool->pending_unregister = 0;
     }
 }
 int projectile_system_register_shooter(ProjectileSystem *ps)
 {
     if (!ps)
         return -1;
+    // find free slot first
+    for (int i = 0; i < ps->shooter_count; ++i)
+    {
+        if (!ps->shooters[i].occupied)
+        {
+            ps->shooters[i].occupied = 1;
+            ps->shooters[i].head = 0;
+            ps->shooters[i].last_fire_time = 0.f;
+            return i;
+        }
+    }
     if (ps->shooter_count >= MAX_SHOOTERS)
         return -1;
-    return ps->shooter_count++;
+    int idx = ps->shooter_count++;
+    ps->shooters[idx].occupied = 1;
+    ps->shooters[idx].head = 0;
+    ps->shooters[idx].last_fire_time = 0.f;
+    return idx;
+}
+void projectile_system_unregister_shooter(ProjectileSystem *ps, int shooter_index)
+{
+    if (!ps)
+        return;
+    if (shooter_index < 0 || shooter_index >= ps->shooter_count)
+        return;
+    ShooterPool *pool = &ps->shooters[shooter_index];
+    // If the shooter still has active projectiles, defer freeing the slot
+    if (pool->head > 0)
+    {
+        pool->pending_unregister = 1; // will be cleared when head reaches 0 in update()
+        return;
+    }
+    // No projectiles: free immediately
+    for (int i = 0; i < pool->head; ++i)
+    {
+        if (pool->items[i])
+            projectile_destroy(pool->items[i]);
+        pool->items[i] = NULL;
+    }
+    pool->head = 0;
+    pool->last_fire_time = 0.f;
+    pool->occupied = 0;
+    pool->pending_unregister = 0;
 }
 bool projectile_system_fire(ProjectileSystem *ps, float world_time, int shooter_index, Entity *owner, float angle, float strength)
 {
@@ -140,6 +182,13 @@ void projectile_system_update(ProjectileSystem *ps, struct Planet **planets, int
             }
         }
         pool->head = write;
+        // If this shooter was marked for unregister and all projectiles are gone, free the slot
+        if (pool->pending_unregister && pool->head == 0)
+        {
+            pool->occupied = 0;
+            pool->pending_unregister = 0;
+            pool->last_fire_time = 0.f;
+        }
     }
     (void)world_time;
 }

@@ -110,8 +110,6 @@ static void player_update(Entity *e, float dt)
         {
             if (p->energy >= (float)p->boost_cost)
             {
-                // initialer voller Kostenabzug
-                p->energy -= (float)p->boost_cost;
                 if (p->energy < 0.f) p->energy = 0.f;
                 boosting_session = 1;
                 // optional kleiner Sofort-Impuls (10% Zielgeschwindigkeit)
@@ -298,8 +296,8 @@ Player *player_create(SDL_Texture *tex)
     p->shooter_index = -1;
     p->world = NULL;
     p->rotation_speed = 2.5f;
-    p->health = 10;
-    p->max_health = 10;
+    p->health = 100;
+    p->max_health = 100;
     p->weapon = weapon_create_default();
     p->current_shot_speed = p->weapon ? (p->weapon->min_speed + p->weapon->max_speed) * 0.5f : 300.f;
     p->fire_was_down = false;

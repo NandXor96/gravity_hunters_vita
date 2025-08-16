@@ -48,7 +48,7 @@ if(BUILD_VITA)
 
     FILE ./assets/images/hud_atlas.png assets/images/hud_atlas.png
     FILE ./assets/images/planets_atlas.png assets/images/planets_atlas.png
-    FILE ./assets/images/spaceship.png assets/images/spaceship.png
+    FILE ./assets/images/player.png assets/images/player.png
     FILE ./assets/images/enemies_atlas.png assets/images/enemies_atlas.png
     FILE ./assets/images/splashscreen.png assets/images/splashscreen.png
   )

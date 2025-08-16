@@ -217,6 +217,9 @@ void world_update(World *w, float dt)
             continue;
         if (!en->alive && en->e.vt && en->e.vt->destroy)
         {
+            // unregister shooter before destroying enemy so projectile_system can reuse the slot
+            if (en->shooter_index >= 0)
+                projectile_system_unregister_shooter(&w->projsys, en->shooter_index);
             en->e.vt->destroy((Entity *)en);
             w->enemies[i] = NULL; // mark for removal
             continue;

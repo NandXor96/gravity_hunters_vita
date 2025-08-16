@@ -1,7 +1,7 @@
 #pragma once
 #include "entity.h"
 
-#define DEBUG_COLLISION // Enable to see collision radius and polygons
+// #define DEBUG_COLLISION // Enable to see collision radius and polygons
 
 struct World; // forward
 struct Renderer; // forward

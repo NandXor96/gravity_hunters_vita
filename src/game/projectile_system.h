@@ -9,6 +9,8 @@ typedef struct ShooterPool
     struct Projectile *items[MAX_PROJECTILES_PER_SHOOTER];
     int head;
     float last_fire_time;
+    int occupied; // 0 = free slot, 1 = in use
+    int pending_unregister; // 1 = waiting to be freed when head reaches 0
 } ShooterPool;
 
 typedef struct ProjectileSystem
@@ -21,6 +23,7 @@ typedef struct ProjectileSystem
 void projectile_system_init(ProjectileSystem *ps, TextureManager *tm);
 void projectile_system_shutdown(ProjectileSystem *ps);
 int projectile_system_register_shooter(ProjectileSystem *ps);
+void projectile_system_unregister_shooter(ProjectileSystem *ps, int shooter_index);
 bool projectile_system_fire(ProjectileSystem *ps, float world_time, int shooter_index, Entity *owner, float angle, float strength);
 struct Player;
 struct Enemy; // forward
