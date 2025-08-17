@@ -5,6 +5,8 @@
 // Local constant for PI to avoid relying on platform-specific M_PI macro
 static const float PI_F = 3.14159265358979323846f;
 #include "../services/renderer.h"
+#include "../services/services.h"
+#include "../services/texture_manager.h"
 #include "world.h" // for world_fire_projectile
 #include "weapon.h"
 
@@ -204,6 +206,39 @@ static void player_on_hit_entity(Entity *e, Entity *hitter)
         }
         if (pr)
             pr->active = false; // deactivate projectile only on valid hit
+        /* Add a small explosion effect for player hits. Use explosion type 1
+         * if available; fall back to 0 if the texture manager provides fewer
+         * types. Position at the projectile hit while player still alive,
+         * otherwise at the player's position. Scale mirrors enemy logic. */
+        if (p->world)
+        {
+            Services *svc = services_get();
+            if (svc && svc->texman)
+            {
+                int types = texman_explosion_type_count(svc->texman);
+                int type = 1;
+                if (types <= 1)
+                    type = 0;
+                else if (type >= types)
+                    type = type % types;
+                float x;
+                float y;
+                float scale;
+                if (p->alive)
+                {
+                    x = hitter->pos.x;
+                    y = hitter->pos.y;
+                    scale = 0.5f;
+                }
+                else
+                {
+                    x = p->e.pos.x;
+                    y = p->e.pos.y;
+                    scale = 0.8f;
+                }
+                world_add_explosion(p->world, type, x, y, scale);
+            }
+        }
     }
 }
 
