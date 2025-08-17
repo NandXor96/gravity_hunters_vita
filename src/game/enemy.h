@@ -62,6 +62,16 @@ typedef struct EnemyAIConfig {
 } EnemyAIConfig;
 
 /**
+ * @brief Compact aim state used by enemies.
+ */
+typedef struct AimState {
+    float target_angle;     /* desired facing angle (radians) */
+    float rotate_speed;     /* max rotation speed (radians/sec) while aiming */
+    float queued_strength;  /* stored strength when an aimed shot is queued */
+    uint8_t queued;         /* boolean-like flag: shot queued and awaiting alignment */
+} AimState;
+
+/**
  * @brief Enemy instance.
  *
  * This contains runtime state for a single enemy entity. Most gameplay and AI
@@ -90,6 +100,7 @@ typedef struct Enemy
     ShotCache shot;
     EnemyAIConfig ai;
     int8_t   explosion_type;             // preferred explosion type index
+    AimState aim;
     // Configurable thresholds for shot search (default values)
     /* deterministic progressive grid-search state (moved into ShotCache) */
 } Enemy;

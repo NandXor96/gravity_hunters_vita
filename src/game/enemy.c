@@ -154,6 +154,39 @@ static void enemy_update(Entity *e, float dt)
             enemy->energy = (float)enemy->energy_max;
     }
     /* AI update (shooting etc.) */
+    /* Smooth rotation toward aim target if a shot is pending.
+     * If aim_rotate_speed is zero, snap immediately and fire.
+     */
+    if (enemy->aim.queued)
+    {
+        float cur = enemy->e.angle;
+        float target = enemy->aim.target_angle;
+        float diff = atan2f(sinf(target - cur), cosf(target - cur));
+        float max_step = enemy->aim.rotate_speed * dt;
+        if (max_step <= 0.f || fabsf(diff) <= max_step)
+        {
+            enemy->e.angle = target;
+        }
+        else
+        {
+            enemy->e.angle += (diff > 0.f ? 1.f : -1.f) * max_step;
+        }
+        /* If aligned within tolerance, perform the pending shot here (synchronous). */
+        float remain = atan2f(sinf(target - enemy->e.angle), cosf(target - enemy->e.angle));
+        if (fabsf(remain) <= 0.05f)
+        {
+            bool fired = world_fire_projectile(enemy->world, enemy->shooter_index, (Entity *)enemy, enemy->aim.target_angle, enemy->aim.queued_strength);
+            if (fired)
+            {
+                weapon_on_fired(enemy->weapon, enemy->world->time);
+                enemy->energy -= (float)enemy->weapon->energy_cost;
+                if (enemy->energy < 0.f)
+                    enemy->energy = 0.f;
+            }
+            enemy->aim.queued = 0;
+        }
+        enemy->e.collider.poly_world_dirty = 1; // mark world poly dirty
+    }
     enemy_ai_update(enemy, enemy->world, dt);
 }
 
@@ -364,6 +397,10 @@ static void enemy_update_shot_search(Enemy *en, World *w)
             if (cand_dist <= ENEMY_SHOT_HIT_RADIUS)
             {
                 en->shot.ready = true;
+                /* keep candidate in shot cache; do not queue firing here. The
+                 * decision to fire (and thus queue aiming) happens in
+                 * enemy_try_shoot.
+                 */
             }
         }
     }
@@ -437,6 +474,11 @@ static bool enemy_init_from_def(Enemy *e, EnemyType t)
     e->e.size.x = d->size_x;
     e->e.size.y = d->size_y;
     e->e.collider.radius = sqrtf(e->e.size.x * e->e.size.x + e->e.size.y * e->e.size.y) * 0.5f + 1; /* keep +1 for margin */
+    /* Aim smoothing defaults: read per-type rotate speed (radians/sec). 0 disables smoothing. */
+    e->aim.target_angle = 0.f;
+    e->aim.rotate_speed = d->aim_rotate_speed; /* per-type tuning */
+    e->aim.queued = 0;
+    e->aim.queued_strength = 0.f;
     return true;
 }
 /* individual enemy_create_* functions removed; initialization is table-driven via ENEMY_DEFS and enemy_init_from_def */
@@ -514,6 +556,8 @@ bool enemy_try_shoot(Enemy *en, struct World *w)
     // Only fire when a cached shot exists (background search in enemy_update_shot_search)
     if (!en->shot.valid)
         return false;
+    if (en->aim.queued)
+        return false; // already aiming, do not fire again
 
     Vec2 origin = en->e.pos;
     // apply jitter based on difficulty: higher difficulty -> less jitter
@@ -523,15 +567,12 @@ bool enemy_try_shoot(Enemy *en, struct World *w)
     float jitter_strength = 1.0f + rng_rangef(&w->rng, -en->ai.base_jitter_strength * jitter_scale, en->ai.base_jitter_strength * jitter_scale);
     float final_angle = en->shot.angle + jitter_angle;
     float final_strength = en->shot.strength * jitter_strength;
-    en->e.angle = final_angle;
-    en->e.collider.poly_world_dirty = 1; // mark world poly dirty
-    bool fired = world_fire_projectile(w, en->shooter_index, (Entity *)en, final_angle, final_strength);
-    if (fired)
-    {
-        weapon_on_fired(en->weapon, w->time);
-        en->energy -= (float)en->weapon->energy_cost;
-        if (en->energy < 0.f)
-            en->energy = 0.f;
-    }
-    return fired;
+    /* Set aim target and mark pending; actual firing will occur in enemy_update
+     * when the enemy has rotated into alignment. This keeps rendering/rotation
+     * smooth and avoids sudden angle snaps.
+     */
+    en->aim.target_angle = final_angle;
+    en->aim.queued_strength = final_strength;
+    en->aim.queued = 1;
+    return true; /* indicate request accepted; actual shot may occur shortly in update() */
 }
