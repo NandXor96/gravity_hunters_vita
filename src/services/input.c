@@ -3,11 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-// Repeat timing (ms)
-#define REPEAT_INITIAL_DELAY 320u
-
-// Analog stick deadzone
-#define STICK_DEADZONE 0.25f
+#include "../core/types.h"
 
 static void repeat_update(struct RepeatState *rs, int is_down, unsigned int now, bool *out_step)
 {

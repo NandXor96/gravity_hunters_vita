@@ -8,13 +8,7 @@
 #include "../services/texture_manager.h"
 #include <stdio.h>
 
-// Fine-tune vertical alignment for stat rendering
-#define HUD_STAT_TEXT_OFFSET_Y   -1.0f  /* raise text a bit */
-#define HUD_STAT_EXTRA_ICON_OFFSET_Y 2.0f /* lower extra (infinity) icon slightly */
-// Static HUD background configuration
-#define HUD_BG_HEIGHT 58.0f
-#define HUD_BG_ALPHA 150
-#define HUD_BG_BORDER_ALPHA 180
+#include "../core/types.h"
 
 // Forward static value & render helper
 static float hud_value_shot_speed(struct World *w, void *user);

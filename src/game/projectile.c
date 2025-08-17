@@ -4,12 +4,7 @@
 #include <math.h>
 #include "../services/services.h"
 #include "../services/renderer.h"
-#ifndef PROJ_GRAVITY_CONST
-#define PROJ_GRAVITY_CONST 500.0f
-#endif
-#ifndef PROJ_EPSILON
-#define PROJ_EPSILON 0.0001f
-#endif
+#include "../core/types.h"
 #include "planet.h"
 #include "../services/texture_manager.h"
 #include "player.h"

@@ -30,6 +30,14 @@ typedef struct World
     void *on_time_over_user;
 } World;
 
+/* SIM_MAX_PROJECTILE_TIME is centralized in core/types.h */
+
+/* Projectile OOB helper: fills output bounds (min_x,min_y,max_x,max_y) for projectile simulation
+ * based on world's display size and proj_oob_margin_factor. All callers should use this instead
+ * of recomputing bounds locally.
+ */
+void world_get_proj_oob_bounds(World *w, float *out_min_x, float *out_min_y, float *out_max_x, float *out_max_y);
+
 // Forward HUD API
 struct Hud* hud_create(struct Services* svc, struct Player* player);
 void hud_destroy(struct Hud* h);

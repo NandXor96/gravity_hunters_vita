@@ -1,9 +1,6 @@
 #include "world.h"
 #include <stdlib.h>
 #include <math.h>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 #include "player.h"
 #include "enemy.h"
 #include "planet.h"
@@ -102,8 +99,8 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
     uint8_t tex_idx = rng_rangei(&w->rng, 0, 15);
 
     // Reserve bottom area for HUD (must match HUD_BG_HEIGHT in hud.c). If HUD changes, update here or refactor into shared header.
-    const float HUD_RESERVED_BOTTOM = 58.f; // pixels
-    usable_bottom = svc->display_h - HUD_RESERVED_BOTTOM;
+    /* Reserve bottom area for HUD (use centralized HUD_BG_HEIGHT to keep layout consistent) */
+    usable_bottom = svc->display_h - HUD_BG_HEIGHT;
     if (usable_bottom < 0.f)
         usable_bottom = 0.f;
 
@@ -410,4 +407,18 @@ void world_set_time_limit(World *w, float seconds)
         return;
     w->time_limit = seconds;
     w->time_over_triggered = 0;
+}
+
+void world_get_proj_oob_bounds(World *w, float *out_min_x, float *out_min_y, float *out_max_x, float *out_max_y)
+{
+    if (!w || !out_min_x || !out_min_y || !out_max_x || !out_max_y)
+        return;
+    int display_w = w->svc ? w->svc->display_w : 960;
+    int display_h = w->svc ? w->svc->display_h : 544;
+    float margin_x = w->proj_oob_margin_factor * (float)display_w;
+    float margin_y = w->proj_oob_margin_factor * (float)display_h;
+    *out_min_x = -margin_x;
+    *out_min_y = -margin_y;
+    *out_max_x = (float)display_w + margin_x;
+    *out_max_y = (float)display_h + margin_y;
 }

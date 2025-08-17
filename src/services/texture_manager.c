@@ -1,5 +1,5 @@
-/* New unified implementation */
 #include "texture_manager.h"
+#include "../core/types.h"
 #include <string.h>
 #include <stdbool.h>
 #include <SDL2/SDL_image.h>
@@ -7,7 +7,6 @@
 #include <math.h>
 #include <stdint.h>
 
-#define TEXF_SHEET (1u << 0)
 struct BaseSlot
 {
     SDL_Texture *tex;
@@ -217,10 +216,11 @@ static void draw_explosion_frame(uint32_t *pixels, int pitch_pixels, int tile, i
     {
         float r, g, b, density, inner, fade;
     } cfgs[4] = {
-        {1.0f, 0.6f, 0.1f, 1.2f, 0.9f, 0.4f},
-        {0.2f, 0.4f, 1.0f, 1.0f, 0.8f, 0.4f},
-        {0.3f, 1.0f, 0.2f, 0.8f, 0.7f, 0.4f},
-        {1.0f, 0.2f, 0.1f, 1.4f, 1.0f, 0.4f}};
+        {1.0f, 0.6f, 0.1f, 1.2f, 0.9f, 0.4f}, // orange
+        {0.2f, 0.4f, 1.0f, 1.0f, 0.8f, 0.4f}, // blau
+        {0.3f, 1.0f, 0.2f, 0.8f, 0.7f, 0.4f}, // grün
+        {1.0f, 0.2f, 0.1f, 1.4f, 1.0f, 0.4f}  // rot
+    };
     int idx = type % 4;
     struct Config c = cfgs[idx];
     srand((unsigned)(type * 1337));

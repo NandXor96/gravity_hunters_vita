@@ -9,27 +9,44 @@
 #include "../services/texture_manager.h"
 #include "../services/services.h"
 #include "planet.h"
+#include "enemy_types.h"
 
-// Replicate projectile gravity constants used in projectile.c for simulation
-#ifndef PROJ_GRAVITY_CONST
-#define PROJ_GRAVITY_CONST 500.0f
-#endif
-#ifndef PROJ_EPSILON
-#define PROJ_EPSILON 0.0001f
-#endif
+#include "../core/types.h"
 
-// Simulate a projectile trajectory (gravity from world's planets) and return
-// the minimal distance to player encountered during the simulated flight.
-static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 player_pos, float angle, float strength,
-                                          float sim_dt, float sim_max_time, float hit_radius)
+/**
+ * @brief Simulate a projectile trajectory under planet gravity.
+ *
+ * Runs a fixed-step simulation of a projectile fired from |origin| with the
+ * given |angle| and |strength|. Gravity from all planets in the world is
+ * applied. The function returns the minimum distance encountered to
+ * |player_pos| during the simulation. The simulation stops early when the
+ * projectile hits a planet or leaves the allowed bounds.
+ *
+ * This helper is used by the enemy shot-search to evaluate candidate
+ * trajectories.
+ */
+static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 player_pos, float angle, float strength, float hit_radius)
 {
+    if (!w)
+        return 1e9f;
     Vec2 pos = origin;
     Vec2 vel = (Vec2){cosf(angle) * strength, sinf(angle) * strength};
     float t = 0.f;
-    float min_dist = 1e9f;
+    /* Work in squared distances to avoid sqrt inside the loop */
+    float min_dist2 = 1e30f;
+    float hit_r2 = hit_radius * hit_radius;
+
+    /* get OOB bounds from world */
+    float min_x, min_y, max_x, max_y;
+    world_get_proj_oob_bounds(w, &min_x, &min_y, &max_x, &max_y);
+
+    /* simulate with fixed timestep */
+    const float sim_dt = FIXED_DT;
+    const float sim_max_time = SIM_MAX_PROJECTILE_TIME;
+
     while (t < sim_max_time)
     {
-        // gravity from planets
+        /* gravity from planets */
         for (int i = 0; i < w->planet_count; ++i)
         {
             struct Planet *pl = w->planets[i];
@@ -38,34 +55,62 @@ static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 pla
             float dx = pl->e.pos.x - pos.x;
             float dy = pl->e.pos.y - pos.y;
             float dist2 = dx * dx + dy * dy;
+            /* extremely close singularity guard */
+            if (dist2 < PROJ_EPSILON)
+                return 1e9f;
+
+            /* Hit planet: if projectile hits planet body, compute distance to player at this point
+             * and if that distance is smaller than current best, update and abort (projectile destroyed).
+             */
             if (dist2 <= pl->radius_sq)
             {
                 float pdx = pos.x - player_pos.x;
                 float pdy = pos.y - player_pos.y;
-                return sqrtf(pdx * pdx + pdy * pdy);
+                float pd2 = pdx * pdx + pdy * pdy;
+                if (pd2 < min_dist2)
+                    min_dist2 = pd2;
+                /* projectile destroyed by planet; stop simulation */
+                return sqrtf(min_dist2);
             }
+
+            /* apply gravity (inverse-square) */
             float inv_dist = 1.0f / sqrtf(dist2);
             float inv_dist2 = inv_dist * inv_dist;
             float accel = (pl->mass * PROJ_GRAVITY_CONST) * inv_dist2;
             vel.x += accel * dx * inv_dist * sim_dt;
             vel.y += accel * dy * inv_dist * sim_dt;
         }
-        // integrate
+
+        /* integrate */
         pos.x += vel.x * sim_dt;
         pos.y += vel.y * sim_dt;
-        // distance to player
+
+        /* If the simulated projectile leaves the world bounds, disqualify (real projectiles are deactivated) */
+        if (pos.x < min_x || pos.x > max_x || pos.y < min_y || pos.y > max_y)
+            return 1e9f;
+
+        /* distance^2 to player */
         float pdx = pos.x - player_pos.x;
         float pdy = pos.y - player_pos.y;
-        float d = sqrtf(pdx * pdx + pdy * pdy);
-        if (d < min_dist)
-            min_dist = d;
-        if (min_dist <= hit_radius)
-            break; // early exit
+        float pd2 = pdx * pdx + pdy * pdy;
+
+        if (pd2 < min_dist2)
+            min_dist2 = pd2;
+
+        if (min_dist2 <= hit_r2)
+            return sqrtf(min_dist2);
+
         t += sim_dt;
     }
-    return min_dist;
+    return sqrtf(min_dist2);
 }
 
+/**
+ * @brief Render callback for enemy entities.
+ *
+ * Uses the enemy's texture and world position to draw the sprite. Rotation
+ * is applied according to the entity angle and angle_offset fields.
+ */
 static void enemy_render(Entity *e, struct Renderer *r)
 {
     if (!e || e->type != ENT_ENEMY)
@@ -91,6 +136,11 @@ static void enemy_render(Entity *e, struct Renderer *r)
     float angle_deg = (en->e.angle + en->e.angle_offset) * (180.f / PI_F);
     renderer_draw_texture(r, en->e.texture, (src.w > 0 ? &src : NULL), &dst, angle_deg);
 }
+/**
+ * @brief Per-frame entity update wrapper.
+ *
+ * Handles energy regeneration and dispatches to the AI update path.
+ */
 static void enemy_update(Entity *e, float dt)
 {
     Enemy *enemy = (Enemy *)e;
@@ -107,6 +157,12 @@ static void enemy_update(Entity *e, float dt)
     enemy_ai_update(enemy, enemy->world, dt);
 }
 
+/**
+ * @brief Collision / hit event handler for enemies.
+ *
+ * Applies damage from projectiles, handles scoring, death, and explosion
+ * creation.
+ */
 static void enemy_on_hit(Entity *e, Entity *hitter)
 {
     if (!e || e->type != ENT_ENEMY)
@@ -159,7 +215,11 @@ static void enemy_on_hit(Entity *e, Entity *hitter)
                 int types = texman_explosion_type_count(svc->texman);
                 if (types > 0)
                 {
-                    int type = rand() % types;
+                    int type = en->explosion_type;
+                    if (type < 0)
+                        type = 0;
+                    if (type >= types)
+                        type = type % types; /* clamp/modulo to available range */
                     float x;
                     float y;
                     float scale;
@@ -184,12 +244,23 @@ static void enemy_on_hit(Entity *e, Entity *hitter)
     }
 }
 
+/**
+ * @brief Entity factory stub for enemy VTable.
+ *
+ * The world spawns enemies via its own API; this generic factory is not
+ * used and returns NULL.
+ */
 static Entity *enemy_create_entity(void *params)
 {
     (void)params; // new path shouldn't use generic factory directly
     return NULL;  // not used; enemies spawned via world_spawn_enemy
 }
 static void enemy_destroy_entity(Entity *e) { enemy_destroy((Enemy *)e); }
+/**
+ * @brief Physical collision callback (contact) for enemies.
+ *
+ * Currently a placeholder — no damage or response applied here.
+ */
 static void enemy_on_collide(Entity *self, Entity *other)
 {
     if (!self || self->type != ENT_ENEMY)
@@ -211,33 +282,98 @@ static SDL_Texture *enemy_base_texture(void)
     return texman_get(svc->texman, TEX_ENEMIES_SHEET);
 }
 
-static bool enemy_apply_common(Enemy *e, int hp, float move_speed, float shoot_speed, bool can_fight, int energy_max, float energy_regen_rate, float shoot_chance)
+/**
+ * @brief Progressive shot-search worker.
+ *
+ * Evaluates a small batch of candidate firing parameters each call and updates
+ * the cached best solution in the enemy's ShotCache. The search is
+ * deterministic and spreads work over multiple frames.
+ */
+static void enemy_update_shot_search(Enemy *en, World *w)
 {
-    e->health = hp;
-    e->move_speed = move_speed;
-    e->shoot_speed = shoot_speed;
-    e->can_fight = can_fight;
-    if (!e->weapon) {
-        e->weapon = weapon_create_default();
-        e->weapon->projectile_variant = 3;
+    if (!en || !w || !w->player || !en->weapon)
+        return;
+    // If cache invalid or player/enemy moved, reset progressive search
+    Vec2 player_pos = w->player->e.pos;
+    Vec2 origin = en->e.pos;
+    if (!en->shot.valid || en->shot.last_player_pos.x != player_pos.x || en->shot.last_player_pos.y != player_pos.y ||
+        en->shot.last_enemy_pos.x != origin.x || en->shot.last_enemy_pos.y != origin.y)
+    {
+        en->shot.last_player_pos = player_pos;
+        en->shot.last_enemy_pos = origin;
+        en->shot.angle = atan2f(player_pos.y - origin.y, player_pos.x - origin.x);
+        en->shot.strength = (en->weapon->min_speed + en->weapon->max_speed) * 0.5f;
+        en->shot.best_dist = simulate_projectile_min_dist(w, origin, player_pos, en->shot.angle, en->shot.strength, ENEMY_SHOT_HIT_RADIUS);
+        en->shot.valid = true;
+        en->shot.search_done = 0;
+        en->shot.improvements = 0;
+        en->shot.ready = (en->shot.best_dist <= ENEMY_SHOT_HIT_RADIUS) ? true : false;
+        // initialize deterministic grid search parameters
+        en->shot.search_base_angle = en->shot.angle;
+        en->shot.search_base_strength = en->shot.strength;
+        en->shot.search_radius_ang = 0.6f; // ±0.6 rad initial sweep
+        en->shot.search_radius_str = 0.5f; // ±50% strength
+        en->shot.search_grid_n = 5;        // 5x5 grid
+        en->shot.search_idx = 0;
     }
-    e->energy_max = energy_max;
-    e->energy = (float)energy_max;
-    e->energy_regen_rate = energy_regen_rate;
-    e->shoot_chance = shoot_chance;
-    // initialize cached shot state
-    e->last_shot_player_pos = (Vec2){0.f, 0.f};
-    e->last_shot_enemy_pos = (Vec2){0.f, 0.f};
-    e->cached_shot_angle = 0.f;
-    e->cached_shot_strength = 0.f;
-    e->cached_shot_best_dist = 1e9f;
-    e->cached_shot_valid = 0;
-    return true;
+
+    // progressive sampling: few iterations per call
+    int to_run = en->shot.search_per_frame;
+    int n = en->shot.search_grid_n > 1 ? en->shot.search_grid_n : 3;
+    int cells = n * n;
+    while (to_run-- > 0 && en->shot.search_done < en->shot.search_total && en->shot.best_dist > ENEMY_SHOT_HIT_RADIUS)
+    {
+        if (en->shot.search_idx >= cells)
+        {
+            // refinement step: move center to best found, shrink radius, reset grid
+            en->shot.search_base_angle = en->shot.angle;
+            en->shot.search_base_strength = en->shot.strength;
+            en->shot.search_radius_ang *= 0.5f;
+            en->shot.search_radius_str *= 0.5f;
+            en->shot.search_idx = 0;
+            // increase grid resolution every couple of refinements to allow finer search
+            if (en->shot.search_grid_n < 11)
+                en->shot.search_grid_n += 2;
+            n = en->shot.search_grid_n;
+            cells = n * n;
+        }
+        int idx = en->shot.search_idx++;
+        int ix = idx % n;
+        int iy = idx / n;
+        // map ix,iy [0..n-1] to normalized range [-1,1]
+        float nx = (n == 1) ? 0.f : ((float)ix / (float)(n - 1)) * 2.f - 1.f;
+        float ny = (n == 1) ? 0.f : ((float)iy / (float)(n - 1)) * 2.f - 1.f;
+        // candidate offsets
+        float cand_angle = en->shot.search_base_angle + nx * en->shot.search_radius_ang;
+        float strength_range = (en->weapon->max_speed - en->weapon->min_speed);
+        float base_str = en->shot.search_base_strength;
+        float cand_strength = base_str * (1.0f + ny * en->shot.search_radius_str);
+        // clamp
+        if (cand_strength < en->weapon->min_speed)
+            cand_strength = en->weapon->min_speed;
+        if (cand_strength > en->weapon->max_speed)
+            cand_strength = en->weapon->max_speed;
+        float cand_dist = simulate_projectile_min_dist(w, origin, player_pos, cand_angle, cand_strength, ENEMY_SHOT_HIT_RADIUS);
+        en->shot.search_done++;
+        if (cand_dist < en->shot.best_dist)
+        {
+            en->shot.best_dist = cand_dist;
+            en->shot.angle = cand_angle;
+            en->shot.strength = cand_strength;
+            en->shot.improvements++;
+            if (cand_dist <= ENEMY_SHOT_HIT_RADIUS)
+            {
+                en->shot.ready = true;
+            }
+        }
+    }
 }
-// Übernimmt ein lokales Polygon in den Collider der Enemy.
-// Erwartet rohe Pixelkoordinaten (wie aus JSON exportiert). Diese werden
-// unverändert in poly_local gespeichert; die Welttransformation passiert
-// später einmal pro Frame in collider_prepare() (collision.c).
+/**
+ * @brief Copy a local polygon into the enemy's collider.
+ *
+ * The provided points are stored in the local polygon array; the world-space
+ * polygon will be computed later during collision preparation.
+ */
 static void enemy_set_polygon(Enemy *e, const Vec2 *pts, int count)
 {
     if (!e || !pts || count <= 0)
@@ -250,69 +386,60 @@ static void enemy_set_polygon(Enemy *e, const Vec2 *pts, int count)
     e->e.collider.poly_world_dirty = 1; // mark world poly_world dirty
     e->e.collider.shape = COLLIDER_SHAPE_POLY;
 }
-static const Vec2 POLY_ASTRO_ANT[] = {{0, 7}, {0, 11}, {5, 15}, {3, 17}, {8, 26}, {10, 22}, {14, 27}, {19, 26}, {21, 22}, {23, 26}, {28, 18}, {26, 15}, {31, 11}, {31, 7}, {20, 10}, {23, 5}, {25, 6}, {25, 3}, {22, 3}, {19, 7}, {12, 7}, {9, 3}, {6, 3}, {6, 6}, {10, 7}, {10, 11}};
-static const Vec2 POLY_FRIGATE[] = {{0, 13}, {0, 24}, {9, 19}, {15, 28}, {21, 19}, {31, 24}, {30, 11}, {28, 9}, {22, 10}, {17, 3}, {14, 3}, {9, 10}, {3, 9}};
-static const Vec2 POLY_HOLO_SHARK[] = {{15, 1}, {9, 11}, {0, 20}, {0, 23}, {8, 20}, {10, 22}, {8, 29}, {12, 27}, {15, 30}, {18, 27}, {23, 29}, {21, 22}, {23, 20}, {31, 23}, {31, 20}};
-static const Vec2 POLY_NOVA_NOMAD[] = {{8, 1}, {1, 9}, {0, 16}, {2, 22}, {0, 24}, {0, 30}, {2, 30}, {5, 25}, {12, 29}, {19, 29}, {26, 25}, {28, 29}, {31, 30}, {31, 24}, {29, 22}, {31, 13}, {29, 7}, {20, 0}};
-static const Vec2 POLY_PLASMA_PIRATE[] = {{2, 13}, {0, 23}, {2, 22}, {5, 27}, {8, 26}, {9, 18}, {13, 26}, {18, 26}, {22, 18}, {23, 26}, {26, 27}, {29, 22}, {31, 23}, {29, 13}, {23, 10}, {17, 3}, {13, 3}, {8, 10}};
-static const Vec2 POLY_SHOCK_BEE[] = {{9, 1}, {12, 4}, {10, 6}, {11, 11}, {1, 9}, {0, 13}, {3, 16}, {3, 19}, {9, 17}, {10, 24}, {16, 29}, {21, 24}, {22, 17}, {28, 19}, {31, 10}, {27, 9}, {21, 12}, {21, 6}, {19, 4}, {22, 1}, {18, 4}, {13, 4}};
-static const Vec2 POLY_SHREDDER_SWALLOW[] = {{15, 2}, {9, 12}, {7, 9}, {3, 13}, {0, 21}, {3, 18}, {4, 21}, {12, 17}, {14, 19}, {9, 27}, {13, 24}, {16, 28}, {18, 24}, {22, 27}, {17, 19}, {19, 17}, {27, 21}, {28, 18}, {31, 21}, {31, 18}, {24, 9}, {22, 12}};
-static const Vec2 POLY_SPARK_FALCON[] = {{15, 1}, {11, 10}, {7, 9}, {0, 14}, {0, 19}, {3, 18}, {3, 22}, {13, 16}, {10, 27}, {13, 24}, {16, 29}, {18, 24}, {21, 27}, {17, 18}, {19, 16}, {21, 19}, {29, 22}, {28, 19}, {31, 19}, {31, 14}, {24, 9}, {20, 10}};
-static const Vec2 POLY_WARP_WESP[] = {{13, 2}, {11, 7}, {3, 10}, {0, 14}, {5, 13}, {6, 16}, {11, 13}, {11, 20}, {16, 28}, {20, 20}, {19, 14}, {20, 13}, {25, 16}, {26, 13}, {31, 13}, {21, 7}, {18, 2}};
-static bool enemy_create_astro_ant(Enemy *e)
+
+/**
+ * @brief Initialize an Enemy instance from a type definition.
+ *
+ * Populates runtime fields using the per-type data in `ENEMY_DEFS`.
+ */
+static bool enemy_init_from_def(Enemy *e, EnemyType t)
 {
-    bool ok = enemy_apply_common(e, 20, 55.f, 0.8f, true, 300, 120.f, 0.002f);
-    enemy_set_polygon(e, POLY_ASTRO_ANT, (int)(sizeof(POLY_ASTRO_ANT) / sizeof(POLY_ASTRO_ANT[0])));
-    return ok;
+    if (!e)
+        return false;
+    if ((int)t < 0 || t >= ENEMY_TYPE_COUNT)
+        return false;
+    const EnemyDef *d = &ENEMY_DEFS[t];
+    /* Inline common initialization (previously enemy_apply_common) */
+    e->health = d->hp;
+    e->move_speed = d->move_speed;
+    e->shoot_speed = d->shoot_speed;
+    e->can_fight = d->can_fight;
+    if (!e->weapon)
+    {
+        e->weapon = weapon_create_default();
+        e->weapon->projectile_variant = 3;
+    }
+    e->energy_max = d->energy_max;
+    e->energy = (float)e->energy_max;
+    e->energy_regen_rate = d->energy_regen_rate;
+    e->shoot_chance = d->shoot_chance;
+    /* initialize cached shot state */
+    e->shot.last_player_pos = (Vec2){0.f, 0.f};
+    e->shot.last_enemy_pos = (Vec2){0.f, 0.f};
+    e->shot.angle = 0.f;
+    e->shot.strength = 0.f;
+    e->shot.best_dist = 1e9f;
+    e->shot.valid = false;
+    /* shot search defaults */
+    e->shot.search_total = 100; /* total samples to find good trajectory */
+    e->shot.search_done = 0;
+    e->shot.search_per_frame = 3; /* do a few samples per update */
+    e->shot.improvements = 0;
+    e->shot.ready = false;
+    /* difficulty defaults (mid) */
+    e->ai.difficulty = 200;
+    e->explosion_type = 0; /* default; overwritten below by def */
+    if (d->poly && d->poly_count > 0)
+        enemy_set_polygon(e, d->poly, d->poly_count);
+    e->ai.base_jitter_angle = d->base_jitter_angle;
+    e->ai.base_jitter_strength = d->base_jitter_strength;
+    e->explosion_type = d->explosion_type;
+    e->e.size.x = d->size_x;
+    e->e.size.y = d->size_y;
+    e->e.collider.radius = sqrtf(e->e.size.x * e->e.size.x + e->e.size.y * e->e.size.y) * 0.5f + 1; /* keep +1 for margin */
+    return true;
 }
-static bool enemy_create_frigate(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 25.f, 1.2f, true, 800, 40.f, 0.001f);
-    enemy_set_polygon(e, POLY_FRIGATE, (int)(sizeof(POLY_FRIGATE) / sizeof(POLY_FRIGATE[0])));
-    return ok;
-}
-static bool enemy_create_holo_shark(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 90.f, 0.6f, true, 250, 160.f, 0.003f);
-    enemy_set_polygon(e, POLY_HOLO_SHARK, (int)(sizeof(POLY_HOLO_SHARK) / sizeof(POLY_HOLO_SHARK[0])));
-    return ok;
-}
-static bool enemy_create_nova_nomad(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 70.f, 0.7f, true, 500, 80.f, 0.0015f);
-    enemy_set_polygon(e, POLY_NOVA_NOMAD, (int)(sizeof(POLY_NOVA_NOMAD) / sizeof(POLY_NOVA_NOMAD[0])));
-    return ok;
-}
-static bool enemy_create_plasma_pirate(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 60.f, 0.5f, true, 600, 60.f, 0.0012f);
-    enemy_set_polygon(e, POLY_PLASMA_PIRATE, (int)(sizeof(POLY_PLASMA_PIRATE) / sizeof(POLY_PLASMA_PIRATE[0])));
-    return ok;
-}
-static bool enemy_create_shock_bee(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 110.f, 0.4f, true, 200, 220.f, 0.004f);
-    enemy_set_polygon(e, POLY_SHOCK_BEE, (int)(sizeof(POLY_SHOCK_BEE) / sizeof(POLY_SHOCK_BEE[0])));
-    return ok;
-}
-static bool enemy_create_shredder_swallow(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 50.f, 0.9f, true, 450, 70.f, 0.0018f);
-    enemy_set_polygon(e, POLY_SHREDDER_SWALLOW, (int)(sizeof(POLY_SHREDDER_SWALLOW) / sizeof(POLY_SHREDDER_SWALLOW[0])));
-    return ok;
-}
-static bool enemy_create_spark_falcon(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 95.f, 0.5f, true, 320, 140.f, 0.0025f);
-    enemy_set_polygon(e, POLY_SPARK_FALCON, (int)(sizeof(POLY_SPARK_FALCON) / sizeof(POLY_SPARK_FALCON[0])));
-    return ok;
-}
-static bool enemy_create_warp_wesp(Enemy *e)
-{
-    bool ok = enemy_apply_common(e, 20, 80.f, 0.6f, true, 380, 100.f, 0.002f);
-    enemy_set_polygon(e, POLY_WARP_WESP, (int)(sizeof(POLY_WARP_WESP) / sizeof(POLY_WARP_WESP[0])));
-    return ok;
-}
+/* individual enemy_create_* functions removed; initialization is table-driven via ENEMY_DEFS and enemy_init_from_def */
 
 Enemy *enemy_create(World *world, EnemyType type, float x, float y, float angle, int id, int shooter_index)
 {
@@ -338,43 +465,8 @@ Enemy *enemy_create(World *world, EnemyType type, float x, float y, float angle,
     e->e.collider.radius = sqrtf(e->e.size.x * e->e.size.x + e->e.size.y * e->e.size.y) * 0.5f + 1;
     e->e.collider.poly_count = 0; // will be set by specific create_* below
     e->e.collider.shape = COLLIDER_SHAPE_CIRCLE;
-    // dispatch
-    bool ok = false;
-    switch (type)
-    {
-    case ENEMY_ASTRO_ANT:
-        ok = enemy_create_astro_ant(e);
-        break;
-    case ENEMY_FRIGATE:
-        ok = enemy_create_frigate(e);
-        break;
-    case ENEMY_HOLO_SHARK:
-        ok = enemy_create_holo_shark(e);
-        break;
-    case ENEMY_NOVA_NOMAD:
-        ok = enemy_create_nova_nomad(e);
-        break;
-    case ENEMY_PLASMA_PIRATE:
-        ok = enemy_create_plasma_pirate(e);
-        break;
-    case ENEMY_SHOCK_BEE:
-        ok = enemy_create_shock_bee(e);
-        break;
-    case ENEMY_SHREDDER_SWALLOW:
-        ok = enemy_create_shredder_swallow(e);
-        break;
-    case ENEMY_SPARK_FALCON:
-        ok = enemy_create_spark_falcon(e);
-        break;
-    case ENEMY_WARP_WESP:
-        ok = enemy_create_warp_wesp(e);
-        break;
-    default:
-        ok = enemy_create_astro_ant(e);
-        e->type = ENEMY_ASTRO_ANT;
-        break;
-    }
-    if (!ok)
+    /* initialize from table-driven defs */
+    if (!enemy_init_from_def(e, type))
     {
         enemy_destroy(e);
         return NULL;
@@ -395,10 +487,16 @@ void enemy_ai_update(Enemy *en, struct World *w, float dt)
         return;
     if (!en->can_fight || !en->weapon)
         return;
+    // incremental shot-search runs each update to progressively find a good trajectory
+    enemy_update_shot_search(en, w);
     // Simple decision: roll per-update chance
-    // Note: shoot_chance is the probability per decision invocation
+    // difficulty influences fire probability (0..255) -> direct proportional
+    float diff_factor = ((float)en->ai.difficulty) / 255.0f; // 0 => no shooting, 1 => full
+    float effective_chance = en->shoot_chance * diff_factor;
+    if (effective_chance > 1.f)
+        effective_chance = 1.f;
     float roll = rng_rangef(&w->rng, 0.f, 1.f);
-    if (roll < en->shoot_chance)
+    if (roll < effective_chance)
     {
         enemy_try_shoot(en, w);
     }
@@ -413,91 +511,18 @@ bool enemy_try_shoot(Enemy *en, struct World *w)
     // energy check
     if (en->energy < (float)en->weapon->energy_cost)
         return false;
-    // Aiming routine: simulate projectile trajectories and pick best angle/strength
-    Vec2 player_pos = w->player ? w->player->e.pos : (Vec2){0, 0};
+    // Only fire when a cached shot exists (background search in enemy_update_shot_search)
+    if (!en->shot.valid)
+        return false;
+
     Vec2 origin = en->e.pos;
-    // base (direct) angle and midpoint strength
-    float base_angle = atan2f(player_pos.y - origin.y, player_pos.x - origin.x);
-    float base_strength = (en->weapon->min_speed + en->weapon->max_speed) * 0.5f;
-
-    // Simulation parameters (reduced cost)
-    const float SIM_DT = 1.0f / 60.0f; // coarser sim timestep to save CPU
-    const float SIM_MAX_TIME = 3.0f;   // shorter sim window
-    const float HIT_RADIUS = 30.0f;    // immediate hit threshold
-
-    // Compute world bounds for OOB similar to projectile_system_update
-    int display_w = w->svc ? w->svc->display_w : 960;
-    int display_h = w->svc ? w->svc->display_h : 544;
-    float margin_x = w->proj_oob_margin_factor * (float)display_w;
-    float margin_y = w->proj_oob_margin_factor * (float)display_h;
-    float min_x = -margin_x;
-    float min_y = -margin_y;
-    float max_x = (float)display_w + margin_x;
-    float max_y = (float)display_h + margin_y;
-    float jitter_strength = rng_rangef(&w->rng, 0.97f, 1.03f);
-    float jitter_angle = rng_rangef(&w->rng, -0.1f, 0.1f);
-
-    // use simulate_projectile_min_dist to find the best candidate, then fire once at the end
-    float best_angle = base_angle;
-    float best_strength = base_strength;
-    float best_dist = 1e9f;
-    // check cache validity: reuse if player/enemy positions unchanged since last compute
-    if (en->cached_shot_valid && en->last_shot_player_pos.x == player_pos.x && en->last_shot_player_pos.y == player_pos.y &&
-        en->last_shot_enemy_pos.x == origin.x && en->last_shot_enemy_pos.y == origin.y)
-    {
-        best_angle = en->cached_shot_angle;
-        best_strength = en->cached_shot_strength;
-        best_dist = en->cached_shot_best_dist;
-    }
-    else
-    {
-        best_dist = simulate_projectile_min_dist(w, origin, player_pos, best_angle, best_strength, SIM_DT, SIM_MAX_TIME, HIT_RADIUS);
-        // update cache base values
-        en->cached_shot_valid = 1;
-        en->last_shot_player_pos = player_pos;
-        en->last_shot_enemy_pos = origin;
-        en->cached_shot_angle = best_angle;
-        en->cached_shot_strength = best_strength;
-        en->cached_shot_best_dist = best_dist;
-    }
-
-    // If direct/cached candidate looks good, keep it; otherwise refine stochastically
-    const int VARIANTS = 12;    // fewer samples for performance
-    float angle_spread = 0.45f; // narrower initial spread
-    float strength_spread = base_strength * 0.25f;
-    int improvements = 0;
-    for (int i = 0; i < VARIANTS && best_dist > HIT_RADIUS; ++i)
-    {
-        float as = angle_spread / (1.0f + improvements * 0.5f);
-        float ss = strength_spread / (1.0f + improvements * 0.5f);
-        float cand_angle = best_angle + rng_rangef(&w->rng, -as, as);
-        float cand_strength = best_strength + rng_rangef(&w->rng, -ss, ss);
-        // clamp strength
-        if (cand_strength < en->weapon->min_speed)
-            cand_strength = en->weapon->min_speed;
-        if (cand_strength > en->weapon->max_speed)
-            cand_strength = en->weapon->max_speed;
-        float cand_dist = simulate_projectile_min_dist(w, origin, player_pos, cand_angle, cand_strength, SIM_DT, SIM_MAX_TIME, HIT_RADIUS);
-        if (cand_dist < best_dist)
-        {
-            best_dist = cand_dist;
-            best_angle = cand_angle;
-            best_strength = cand_strength;
-            improvements++;
-            // update cache when we find an improvement
-            en->cached_shot_angle = best_angle;
-            en->cached_shot_strength = best_strength;
-            en->cached_shot_best_dist = best_dist;
-        }
-    }
-
-    // Final shot chosen (best_angle, best_strength). Apply small random jitter to strength
-    float final_angle = best_angle + jitter_angle; // keep tiny angle jitter
-    // Normalize angle to [0, 2π)
-    const float TWO_PI = 6.28318530717958647692f;
-    while (final_angle < 0.0f) final_angle += TWO_PI;
-    while (final_angle >= TWO_PI) final_angle -= TWO_PI;
-    float final_strength = best_strength * jitter_strength;
+    // apply jitter based on difficulty: higher difficulty -> less jitter
+    float diff_factor = ((float)en->ai.difficulty) / 255.0f; // 0..1
+    float jitter_scale = 1.0f - diff_factor;                 // 1 => max jitter at diff 0, 0 => no jitter
+    float jitter_angle = rng_rangef(&w->rng, -en->ai.base_jitter_angle * jitter_scale, en->ai.base_jitter_angle * jitter_scale);
+    float jitter_strength = 1.0f + rng_rangef(&w->rng, -en->ai.base_jitter_strength * jitter_scale, en->ai.base_jitter_strength * jitter_scale);
+    float final_angle = en->shot.angle + jitter_angle;
+    float final_strength = en->shot.strength * jitter_strength;
     en->e.angle = final_angle;
     en->e.collider.poly_world_dirty = 1; // mark world poly dirty
     bool fired = world_fire_projectile(w, en->shooter_index, (Entity *)en, final_angle, final_strength);
