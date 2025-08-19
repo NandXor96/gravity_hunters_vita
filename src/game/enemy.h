@@ -86,7 +86,6 @@ typedef struct Enemy
     bool can_fight;
     float move_speed;
     float shoot_speed;
-    int16_t id;
     int16_t shooter_index;
     int16_t health;
     struct Weapon *weapon;
@@ -117,7 +116,7 @@ typedef struct Enemy
  * @param shooter_index Index into the world's shooter registry used for firing.
  * @return Pointer to a newly allocated Enemy or NULL on failure.
  */
-Enemy *enemy_create(struct World *world, EnemyType type, float x, float y, float angle, int id, int shooter_index);
+Enemy *enemy_create(struct World *world, EnemyType type, float x, float y, int shooter_index, char difficulty);
 
 /**
  * @brief Destroy an Enemy instance and free its resources.

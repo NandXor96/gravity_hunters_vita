@@ -232,7 +232,6 @@ void world_update(World *w, float dt)
             Enemy *en = w->enemies[i];
             if (!en)
                 continue;
-            en->id = write; // update id to new index
             w->enemies[write++] = en;
         }
         w->enemy_count = write;
@@ -374,9 +373,8 @@ bool world_spawn_enemy(World *w, int kind, float x, float y)
     if (w->enemy_count >= MAX_ENEMIES)
         return false;
     int shooter_index = world_register_shooter(w);
-    int id = w->enemy_count;
     float angle = 0.0f;
-    Enemy *en = enemy_create(w, (EnemyType)kind, x, y, angle, id, shooter_index);
+    Enemy *en = enemy_create(w, (EnemyType)kind, x, y, shooter_index, 128);
     if (!en)
         return false;
     w->enemies[w->enemy_count++] = en;

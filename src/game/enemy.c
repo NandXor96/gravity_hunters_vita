@@ -131,9 +131,8 @@ static void enemy_render(Entity *e, struct Renderer *r)
     float w = en->e.size.x;
     float h = en->e.size.y;
     SDL_FRect dst = {en->e.pos.x - w * 0.5f, en->e.pos.y - h * 0.5f, w, h};
-    // Convert angle to degrees; align similar to player (assume artwork faces up) -> apply angle_offset
-    const float PI_F = 3.14159265358979323846f;
-    float angle_deg = (en->e.angle + en->e.angle_offset) * (180.f / PI_F);
+    // Convert angle to degrees; align similar to player (assume artwork faces up) -> apply angle_offset´
+    float angle_deg = (en->e.angle + en->e.angle_offset) * (180.f / M_PI);
     renderer_draw_texture(r, en->e.texture, (src.w > 0 ? &src : NULL), &dst, angle_deg);
 }
 /**
@@ -464,7 +463,6 @@ static bool enemy_init_from_def(Enemy *e, EnemyType t)
     e->shot.improvements = 0;
     e->shot.ready = false;
     /* difficulty defaults (mid) */
-    e->ai.difficulty = 200;
     e->explosion_type = 0; /* default; overwritten below by def */
     if (d->poly && d->poly_count > 0)
         enemy_set_polygon(e, d->poly, d->poly_count);
@@ -483,7 +481,7 @@ static bool enemy_init_from_def(Enemy *e, EnemyType t)
 }
 /* individual enemy_create_* functions removed; initialization is table-driven via ENEMY_DEFS and enemy_init_from_def */
 
-Enemy *enemy_create(World *world, EnemyType type, float x, float y, float angle, int id, int shooter_index)
+Enemy *enemy_create(World *world, EnemyType type, float x, float y, int shooter_index, char difficulty)
 {
     Enemy *e = calloc(1, sizeof(Enemy));
     if (!e)
@@ -494,19 +492,18 @@ Enemy *enemy_create(World *world, EnemyType type, float x, float y, float angle,
     e->type = type;
     e->e.pos.x = x;
     e->e.pos.y = y;
-    e->e.angle = angle;
-    e->id = id;
+    e->e.angle = rng_rangef(&world->rng, 0, 2 * M_PI);
     e->shooter_index = shooter_index;
     e->alive = true;
     e->e.size.x = 32;
     e->e.size.y = 32; // default tile size; can tweak per type later
     e->e.texture = enemy_base_texture();
-    const float PI_F = 3.14159265358979323846f;
-    e->e.angle_offset = (PI_F * 0.5f);
+    e->e.angle_offset = (M_PI * 0.5f);
     e->e.is_dynamic = true;
     e->e.collider.radius = sqrtf(e->e.size.x * e->e.size.x + e->e.size.y * e->e.size.y) * 0.5f + 1;
     e->e.collider.poly_count = 0; // will be set by specific create_* below
     e->e.collider.shape = COLLIDER_SHAPE_CIRCLE;
+    e->ai.difficulty = difficulty;
     /* initialize from table-driven defs */
     if (!enemy_init_from_def(e, type))
     {
