@@ -44,6 +44,8 @@ void input_poll(Input *in, InputState *out)
 
     #ifdef PLATFORM_VITA
     out->confirm = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_A);
+    out->back = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_B);
+    out->pause = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_START);
     out->speed_up = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_DPAD_UP);
     out->speed_down = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
     out->turn_left = SDL_GameControllerGetButton(in->controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);

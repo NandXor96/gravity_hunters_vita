@@ -44,7 +44,7 @@ typedef struct Vec2 { float x, y; } Vec2;
 #define REPEAT_INITIAL_DELAY 320u
 #endif
 #ifndef STICK_DEADZONE
-#define STICK_DEADZONE 0.25f
+#define STICK_DEADZONE 0.8f
 #endif
 
 /* Texture flags */

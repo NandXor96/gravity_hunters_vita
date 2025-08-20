@@ -12,6 +12,7 @@
 #include "../services/texture_manager.h"
 #include "../services/services.h"
 #include "../core/rand.h"
+#include <stdio.h>
 
 static float usable_bottom;
 
@@ -79,10 +80,9 @@ Vec2 world_find_free_position(World *w, float min_dist_planets, float min_dist_p
  *
  * @param svc The services instance.
  * @param seed The random seed.
- * @param max_planet_area The maximum area for planets.
  * @return A pointer to the newly created world.
  */
-World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area)
+World *world_create(struct Services *svc, u32 seed)
 {
     World *w = calloc(1, sizeof(World));
     w->svc = svc;
@@ -107,7 +107,7 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
     return w;
 }
 
-void world_populate_planets(World *w, unsigned int max_planet_area_percent)
+void world_populate_planets(World *w, unsigned int max_planet_area_percent, float avg_radius)
 {
     if (!w || !w->svc)
         return;
@@ -120,31 +120,80 @@ void world_populate_planets(World *w, unsigned int max_planet_area_percent)
     if (usable_bottom < 0.f)
         usable_bottom = 0.f;
 
+    /* Determine desired total planet area */
+    float desired_area = display_area * ((float)max_planet_area_percent / 100.0f);
+    if (avg_radius <= 0.f)
+        avg_radius = 56.f; /* fallback average radius */
+
+    int placed = 0;
     int attempts = 0;
-    float min_radius = 40.f;
-    float max_radius = 80.f;
-    while (planets_area < display_area * max_planet_area_percent / 100 && attempts < 100)
+    const int MAX_TOTAL_ATTEMPTS = 1000;
+    int initial_planet_count = w->planet_count;
+    float sum_radii = 0.f; /* sum of radii for all planets added in this call */
+
+    while (planets_area < desired_area && attempts < MAX_TOTAL_ATTEMPTS)
     {
-        float radius = rng_rangef(&w->rng, 40.0f, max_radius);
-        Vec2 pos = world_find_free_position(w, 1.2 * radius, 0, 0, 2 * radius, 500);
+        /* pick radius around avg +/-20% */
+        float radius = avg_radius * rng_rangef(&w->rng, 0.75f, 1.25f);
+
+        /* adaptive minimum distance to encourage spreading: increases slowly with placed count */
+        float spread_factor = 1.2f + 0.05f * sqrtf((float)fmax(0, placed));
+        float min_dist_planets = spread_factor * radius;
+
+        /* use world_find_free_position to locate a valid spot (size=diameter) */
+        Vec2 pos = world_find_free_position(w, fmax(min_dist_planets, 50.f), 0, 0, 2.0f * radius, 400);
         if (pos.x < 0.f)
         {
-            if(max_radius > min_radius)
-                max_radius = radius - 2;
             attempts++;
-            continue;
+            continue; /* couldn't find a spot for this radius this attempt */
         }
+
         float mass = M_PI * radius * radius;
         SDL_Texture *tex = texman_get(w->svc->texman, TEX_PLANETS_SHEET);
         SDL_Rect src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, (tex_idx++) % 16);
-        world_add_planet(w, pos.x, pos.y, radius, mass, tex);
-        if (w->planet_count > 0)
+        if (world_add_planet(w, pos.x, pos.y, radius, mass, tex))
         {
-            Planet *np = w->planets[w->planet_count - 1];
-            np->src = src;
+            if (w->planet_count > 0)
+            {
+                Planet *np = w->planets[w->planet_count - 1];
+                np->src = src;
+            }
+            planets_area += mass;
+            placed++;
+            sum_radii += radius;
         }
-        planets_area += mass;
+        attempts++;
     }
+
+    /* If we couldn't reach desired area, allow some extra random retry attempts with relaxed constraints */
+    int fallback = 0;
+    const int MAX_FALLBACK = 300;
+    while (planets_area < desired_area && fallback < MAX_FALLBACK)
+    {
+        float radius = avg_radius * rng_rangef(&w->rng, 0.75f - MAX_FALLBACK * 0.001f, 1);
+        Vec2 pos = world_find_free_position(w, fmax(radius, 50.f), 0, 0, 2.0f * radius, 500);
+        if (pos.x < 0.f) { fallback++; continue; }
+        float mass = M_PI * radius * radius;
+        SDL_Texture *tex = texman_get(w->svc->texman, TEX_PLANETS_SHEET);
+        SDL_Rect src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, (tex_idx++) % 16);
+        if (world_add_planet(w, pos.x, pos.y, radius, mass, tex))
+        {
+            if (w->planet_count > 0)
+            {
+                Planet *np = w->planets[w->planet_count - 1];
+                np->src = src;
+            }
+        planets_area += mass;
+        sum_radii += radius;
+        }
+        fallback++;
+    }
+    /* Log requested vs achieved area percentage for debugging/tuning */
+    float achieved_pct = (display_area > 0.f) ? (planets_area / display_area * 100.0f) : 0.f;
+    int added = w->planet_count - initial_planet_count;
+    float achieved_avg_radius = (added > 0) ? (sum_radii / (float)added) : 0.f;
+    printf("world_populate_planets: requested=%u%%, achieved=%.2f%% (planet_area=%.0f display_area=%.0f), requested_avg=%.2f, achieved_avg=%.2f, added=%d\n",
+       max_planet_area_percent, achieved_pct, planets_area, display_area, avg_radius, achieved_avg_radius, added);
 }
 
 bool world_place_player(World *w, float min_dist_planets)
@@ -358,7 +407,7 @@ bool world_add_player(World *w, float x, float y)
     return true;
 }
 
-bool world_spawn_enemy(World *w, int kind, float x, float y)
+bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty)
 {
     if (!w)
         return false;
@@ -366,7 +415,7 @@ bool world_spawn_enemy(World *w, int kind, float x, float y)
         return false;
     int shooter_index = world_register_shooter(w);
     float angle = 0.0f;
-    Enemy *en = enemy_create(w, (EnemyType)kind, x, y, shooter_index, 128);
+    Enemy *en = enemy_create(w, (EnemyType)kind, x, y, shooter_index, difficulty);
     if (!en)
         return false;
     w->enemies[w->enemy_count++] = en;

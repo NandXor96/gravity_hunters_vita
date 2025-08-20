@@ -5,6 +5,14 @@ struct World;
 struct Services;
 struct Renderer;
 
+typedef struct QuickPlaySettings {
+    int planets_count; // 0..2
+    int planet_size;   // 0..2
+    int difficulty;    // 0..2
+    int time_seconds;  // -1 = infinite
+    int worlds;        // -1 = infinite or numeric
+} QuickPlaySettings;
+
 typedef struct SceneQuickPlayState
 {
     struct Services *svc;
@@ -25,3 +33,7 @@ void scene_quick_play_leave(Scene *s);
 void scene_quick_play_handle_input(Scene *s, const struct InputState *in);
 void scene_quick_play_update(Scene *s, float dt);
 void scene_quick_play_render(Scene *s, struct Renderer *r);
+
+/* Quick Play settings API for external scenes (menu) to set parameters before starting */
+void scene_quick_play_set_settings(const QuickPlaySettings *s);
+const QuickPlaySettings* scene_quick_play_get_settings(void);

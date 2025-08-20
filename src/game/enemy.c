@@ -446,7 +446,7 @@ static bool enemy_init_from_def(Enemy *e, EnemyType t)
         e->weapon->projectile_variant = 3;
     }
     e->energy_max = d->energy_max;
-    e->energy = (float)e->energy_max;
+    e->energy = 0;
     e->energy_regen_rate = d->energy_regen_rate;
     e->shoot_chance = d->shoot_chance;
     /* initialize cached shot state */

@@ -44,14 +44,14 @@ void hud_destroy(struct Hud* h);
 void hud_update(struct Hud* h, struct World* w, float dt);
 void hud_render(struct Hud* h, struct Renderer* r);
 
-World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area);
+World *world_create(struct Services *svc, u32 seed);
 void world_destroy(World *w);
 void world_update(World *w, float dt);
 void world_render(World *w, struct Renderer *r);
 
 bool world_add_planet(World *w, float x, float y, float radius, float mass, SDL_Texture *tex);
 bool world_add_player(World *w, float x, float y);
-bool world_spawn_enemy(World *w, int kind, float x, float y);
+bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty);
 int world_register_shooter(World *w);
 bool world_fire_projectile(World *w, int shooter_index, Entity *owner, float angle, float strength);
 bool world_add_explosion(World* w, int type, float x, float y, float scale);
@@ -61,6 +61,6 @@ void world_set_time_limit(World* w, float seconds); // -1 for infinite
 Vec2 world_find_free_position(World *w, float min_dist_planets, float min_dist_player, float min_dist_enemies, float size, int max_attempts);
 
 /* New: populate world planets up to a percentage of display area (same semantics as previous world_create) */
-void world_populate_planets(World *w, unsigned int max_planet_area_percent);
+void world_populate_planets(World *w, unsigned int max_planet_area_percent, float avg_radius);
 /* New: place a player using placement heuristics; returns true on success */
 bool world_place_player(World *w, float min_dist_planets);

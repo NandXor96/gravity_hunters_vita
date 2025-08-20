@@ -17,7 +17,7 @@ typedef struct MenuEntry
 
 static const MenuEntry DEFAULT_MENU[] = {
     {"Campaign", 0, -1},
-    {"Quick Play", 1, SCENE_QUICK_PLAY},
+    {"Quick Play", 1, SCENE_QUICK_PLAY_MENU},
     {"Zen Mode", 0, -1},
     {"Help", 0, -1},
     {"Credits", 0, -1}};
