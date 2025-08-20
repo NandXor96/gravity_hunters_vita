@@ -87,6 +87,9 @@ void app_update(void) {
 
     // Clear backbuffer explicitly BEFORE rendering a full frame
     SDL_Renderer* sdlr = g_app->services->sdl_renderer;
+    /* Ensure we clear to a known opaque color (black) so leftover draw colors
+     * or alpha values from previous draws can't tint the entire frame. */
+    SDL_SetRenderDrawColor(sdlr, 0, 0, 0, 255);
     SDL_RenderClear(sdlr);
 
     // Render current stack (base + overlays)

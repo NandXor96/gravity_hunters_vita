@@ -29,5 +29,8 @@ void renderer_render(Renderer *r);
 void renderer_draw_texture(Renderer *r, SDL_Texture *tex, const SDL_Rect *src, const SDL_FRect *dst, float angle_deg);
 void renderer_draw_text(Renderer *r, const char *text, float x, float y, TextStyle style);
 void renderer_draw_textbox(Renderer *r, const char *text, SDL_FRect box, TextboxStyle style);
+void renderer_draw_filled_rect(Renderer *r, SDL_FRect rect, SDL_Color color);
+void renderer_draw_text_centered(Renderer *r, const char *text, float cx, float y, TextStyle style);
+void renderer_draw_rect_outline(Renderer *r, SDL_FRect rect, SDL_Color color, int border_px);
 void renderer_show_splashscreen(Renderer *r);
 SDL_Point renderer_measure_text(Renderer *r, const char *text, TextStyle style);

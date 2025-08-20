@@ -71,12 +71,40 @@ void renderer_draw_textbox(Renderer *r, const char *text, SDL_FRect box, Textbox
     SDL_SetRenderDrawColor(r->sdl, 200, 200, 200, 255);
     SDL_RenderDrawRectF(r->sdl, &box);
 }
+void renderer_draw_filled_rect(Renderer *r, SDL_FRect rect, SDL_Color color)
+{
+    SDL_SetRenderDrawColor(r->sdl, color.r, color.g, color.b, color.a);
+    SDL_RenderFillRectF(r->sdl, &rect);
+}
+
+void renderer_draw_text_centered(Renderer *r, const char *text, float cx, float y, TextStyle style)
+{
+    SDL_Point p = renderer_measure_text(r, text, style);
+    float x = cx - (p.x * 0.5f);
+    renderer_draw_text(r, text, x, y, style);
+}
+
+void renderer_draw_rect_outline(Renderer *r, SDL_FRect rect, SDL_Color color, int border_px)
+{
+    (void)border_px; // keep API but draw single-pixel outline using SDL
+    if (!r)
+        return;
+    SDL_SetRenderDrawColor(r->sdl, color.r, color.g, color.b, color.a);
+    SDL_RenderDrawRectF(r->sdl, &rect);
+}
 SDL_Point renderer_measure_text(Renderer *r, const char *text, TextStyle style)
 {
-    (void)r;
     (void)style;
-    int w = (int)(text ? (int)strlen(text) * 8 : 0);
-    return (SDL_Point){w, 12};
+    if (!r || !text || !r->font)
+        return (SDL_Point){0, 0};
+    int w = 0, h = 0;
+    /* Use TTF to get accurate glyph metrics for the current font */
+    if (TTF_SizeUTF8(r->font, text, &w, &h) != 0) {
+        /* fallback heuristic */
+        w = (int)strlen(text) * 8;
+        h = 12;
+    }
+    return (SDL_Point){w, h};
 }
 
 // unneeded because of pic0.png

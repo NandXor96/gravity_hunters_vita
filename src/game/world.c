@@ -18,7 +18,7 @@ static float usable_bottom;
 /* Generic placement helper: places a point at least min_dist away from entities.
  * For planets we need variable exclusion radii (planet radius * factor). We pass dynamic radius via param.
  */
-static Vec2 world_place_helper(World *w, float min_dist_planets, float min_dist_player, float min_dist_enemies, float size, int max_attempts)
+Vec2 world_find_free_position(World *w, float min_dist_planets, float min_dist_player, float min_dist_enemies, float size, int max_attempts)
 {
     Vec2 v = {-1.f, -1.f};
     float half_size = 0.5 * size;
@@ -93,29 +93,42 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
 
     rng_seed(&w->rng, seed);
 
-    // Add Planets
+    /* Note: planet and player placement moved to explicit helper functions
+     * so scenes can control when and how worlds are populated. */
+
+
+
+    // Time limit defaults
+    w->time_limit = -1.f; // infinite by default
+    w->time_over_triggered = 0;
+    w->on_time_over = NULL;
+    w->on_time_over_user = NULL;
+
+    return w;
+}
+
+void world_populate_planets(World *w, unsigned int max_planet_area_percent)
+{
+    if (!w || !w->svc)
+        return;
+    struct Services *svc = w->svc;
     float display_area = svc->display_w * svc->display_h;
     float planets_area = 0;
     uint8_t tex_idx = rng_rangei(&w->rng, 0, 15);
 
-    // Reserve bottom area for HUD (must match HUD_BG_HEIGHT in hud.c). If HUD changes, update here or refactor into shared header.
-    /* Reserve bottom area for HUD (use centralized HUD_BG_HEIGHT to keep layout consistent) */
     usable_bottom = svc->display_h - HUD_BG_HEIGHT;
     if (usable_bottom < 0.f)
         usable_bottom = 0.f;
 
-    // Planets placement
     int attempts = 0;
     float min_radius = 40.f;
     float max_radius = 80.f;
-    while (planets_area < display_area * max_planet_area / 100 && attempts < 100)
+    while (planets_area < display_area * max_planet_area_percent / 100 && attempts < 100)
     {
         float radius = rng_rangef(&w->rng, 40.0f, max_radius);
-        Vec2 pos = world_place_helper(w, 1.2 * radius, 0, 0, 2 * radius, 500);
+        Vec2 pos = world_find_free_position(w, 1.2 * radius, 0, 0, 2 * radius, 500);
         if (pos.x < 0.f)
         {
-            printf("Couldn't place planet with radius %f\n", radius);
-            printf("%f < %f\n", planets_area, display_area * max_planet_area / 100);
             if(max_radius > min_radius)
                 max_radius = radius - 2;
             attempts++;
@@ -132,36 +145,20 @@ World *world_create(struct Services *svc, u32 seed, unsigned int max_planet_area
         }
         planets_area += mass;
     }
+}
 
-    printf("Planets placed: %d\n", w->planet_count);
-    printf("%f < %f\n", planets_area, display_area * max_planet_area / 100);
-
-    // Player placement
-    {
-        Vec2 ppos = world_place_helper(w, 32.f, 0, 0, 32.f, 300);
-        if (ppos.x < 0.f)
-            ppos = (Vec2){svc->display_w * 0.5f, usable_bottom * 0.5f};
-        world_add_player(w, ppos.x, ppos.y);
-        if (!w->hud)
-            w->hud = hud_create(svc, w->player);
-    }
-
-    // Enemies placement (3 initial)
-    for (int i = 0; i < 3; ++i)
-    {
-        Vec2 epos = world_place_helper(w, 32.f, 150.f, 100.f, 32.f, 400);
-        if (epos.x < 0.f)
-            break;
-        world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y);
-    }
-
-    // Time limit defaults
-    w->time_limit = -1.f; // infinite by default
-    w->time_over_triggered = 0;
-    w->on_time_over = NULL;
-    w->on_time_over_user = NULL;
-
-    return w;
+bool world_place_player(World *w, float min_dist_planets)
+{
+    if (!w || !w->svc)
+        return false;
+    Vec2 ppos = world_find_free_position(w, min_dist_planets, 0, 0, 32.f, 300);
+    if (ppos.x < 0.f)
+        ppos = (Vec2){w->svc->display_w * 0.5f, usable_bottom * 0.5f};
+    if (!world_add_player(w, ppos.x, ppos.y))
+        return false;
+    if (!w->hud)
+        w->hud = hud_create(w->svc, w->player);
+    return true;
 }
 void world_destroy(World *w)
 {
@@ -238,14 +235,9 @@ void world_update(World *w, float dt)
         for (int i = write; i < MAX_ENEMIES; ++i)
             w->enemies[i] = NULL;
     }
-    // Spawn new enemies
-    for (int i = w->enemy_count; i < 3; ++i)
-    {
-        Vec2 epos = world_place_helper(w, 32.f, 150.f, 100.f, 32.f, 400);
-        if (epos.x < 0.f)
-            break;
-        world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y);
-    }
+    /* NOTE: enemy spawning is now the responsibility of the active scene.
+     * World no longer performs automatic spawning so scenes can fully
+     * control gameplay flow and spawn rules. */
 
     // Planets
     for (int i = 0; i < w->planet_count; ++i)
