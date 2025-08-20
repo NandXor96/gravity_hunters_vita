@@ -560,8 +560,13 @@ bool enemy_try_shoot(Enemy *en, struct World *w)
     // apply jitter based on difficulty: higher difficulty -> less jitter
     float diff_factor = ((float)en->ai.difficulty) / 255.0f; // 0..1
     float jitter_scale = 1.0f - diff_factor;                 // 1 => max jitter at diff 0, 0 => no jitter
-    float jitter_angle = rng_rangef(&w->rng, -en->ai.base_jitter_angle * jitter_scale, en->ai.base_jitter_angle * jitter_scale);
-    float jitter_strength = 1.0f + rng_rangef(&w->rng, -en->ai.base_jitter_strength * jitter_scale, en->ai.base_jitter_strength * jitter_scale);
+    float jitter_angle = 0;
+    float jitter_strength = 1;
+    bool jitter_type = (bool)rng_rangei(&w->rng, 0, 1);
+    if (jitter_type)
+        jitter_angle = rng_rangef(&w->rng, -en->ai.base_jitter_angle * jitter_scale, en->ai.base_jitter_angle * jitter_scale);
+    else
+        jitter_strength = 1.0f + rng_rangef(&w->rng, -en->ai.base_jitter_strength * jitter_scale, en->ai.base_jitter_strength * jitter_scale);
     float final_angle = en->shot.angle + jitter_angle;
     float final_strength = en->shot.strength * jitter_strength;
     /* Set aim target and mark pending; actual firing will occur in enemy_update
