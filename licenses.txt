@@ -1,1 +1,2 @@
 Schriftart Comic Shanns 2: MIT
+https://github.com/shannpersand/comic-shanns
