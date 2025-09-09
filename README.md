@@ -1,6 +1,12 @@
 # Gravity Hunters PS Vita Game
 
-Blablabla
+Still in heavy development. No finished game, yet...  
+
+WIP  
+WIP  
+WIP  
+WIP  
+WIP  
 
 ## Build (PS Vita)
 
