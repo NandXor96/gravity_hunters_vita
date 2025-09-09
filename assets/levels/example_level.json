@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "example-01",
+  "time_mode": "limit",
+  "time_limit": 120,
+  "start_text": "Defend the base!",
+  "goal": {
+    "kills": 3,
+    "deaths": 0,
+    "time_seconds": 0
+  },
+  "rating": [100, 200, 300],
+  "player": {
+    "pos": [480, 80],
+    "health": 100
+  },
+  "planets": [
+  { "type": 1, "size": 50, "pos": [150, 150] },
+  { "type": 2, "size": 50, "pos": [400, 400] }
+  ],
+  "enemies": [
+  { "id": 1, "type": 1, "pos": [220, 220], "difficulty": 80, "health": 30, "spawn_when": { "kind": "on_start", "delay": 0 } },
+  { "id": 2, "type": 2, "pos": [300, 350], "difficulty": 255, "health": 60, "spawn_when": { "kind": "on_death", "arg": 1, "delay": 1 } },
+  { "id": 3, "type": 3, "pos": [330, 300], "difficulty": 255, "health": 60, "spawn_when": { "kind": "on_death", "arg": 1, "delay": 2 } }
+  ]
+}

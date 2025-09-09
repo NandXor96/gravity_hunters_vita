@@ -12,21 +12,24 @@
 #include "../game/player.h"
 #include "../core/rand.h"
 #include "../game/enemy.h"
-#include "overlay_endgame.h"
+#include "overlay_endgame_qp.h"
 
-static uint8_t enemy_difficulty[3] = { 120, 170, 210 };
-static uint8_t enemy_count[3] = { 2, 3, 3 };
+static uint8_t enemy_difficulty[3] = {120, 170, 210};
+static uint8_t enemy_count[3] = {2, 3, 3};
 
-static void on_world_time_over(struct World* w, void* user){
+static void on_world_time_over(struct World *w, void *user)
+{
     (void)w;
-    Scene *scene = (Scene*)user;
-    if(!scene) return;
-    SceneQuickPlayState *st = (SceneQuickPlayState*)scene->state;
-    if(!st || st->time_over_handled) return;
+    Scene *scene = (Scene *)user;
+    if (!scene)
+        return;
+    SceneQuickPlayState *st = (SceneQuickPlayState *)scene->state;
+    if (!st || st->time_over_handled)
+        return;
     st->time_over_handled = 1;
     if (st && st->world)
     {
-        overlay_endgame_set_stats(st->world->kills, st->world->deaths, st->world->score);
+        overlay_endgame_qp_set_stats(st->world->kills, st->world->deaths, st->world->score);
     }
     app_push_overlay(SCENE_OVERLAY_ENDGAME);
 }
@@ -36,10 +39,11 @@ static QuickPlaySettings g_qp_settings = {0};
 
 void scene_quick_play_set_settings(const QuickPlaySettings *s)
 {
-    if (!s) return;
+    if (!s)
+        return;
     g_qp_settings = *s;
 }
-const QuickPlaySettings* scene_quick_play_get_settings(void)
+const QuickPlaySettings *scene_quick_play_get_settings(void)
 {
     return &g_qp_settings;
 }
@@ -50,26 +54,16 @@ void scene_quick_play_pause(Scene *s)
     app_push_overlay(SCENE_OVERLAY_PAUSE);
 }
 void scene_quick_play_resume(Scene *s) { (void)s; }
-void scene_quick_play_display_text(Scene *s, const char *msg)
-{
-    SceneQuickPlayState *st = (SceneQuickPlayState *)s->state;
-    st->show_hud_text = true;
-    strncpy(st->hud_text, msg, sizeof(st->hud_text) - 1);
-}
-void scene_quick_play_display_hud(Scene *s, bool show)
-{
-    SceneQuickPlayState *st = (SceneQuickPlayState *)s->state;
-    st->show_hud_text = show;
-}
 
 static void spawn_to_maintain(SceneQuickPlayState *st)
 {
-    if (!st || !st->world) return;
+    if (!st || !st->world)
+        return;
     World *w = st->world;
     const QuickPlaySettings *qs = scene_quick_play_get_settings();
     int max_enemies = qs->difficulty + 1;
     /* map quickplay difficulty to enemy difficulty byte (0..255) */
-    if(w->enemy_count >= max_enemies)
+    if (w->enemy_count >= max_enemies)
         return; // already at desired population
 
     uint8_t enemy_diff = 85; /* baseline */
@@ -84,7 +78,6 @@ static void spawn_to_maintain(SceneQuickPlayState *st)
         world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y, enemy_diff);
     }
 }
-
 
 void scene_quick_play_enter(Scene *s)
 {
@@ -103,16 +96,21 @@ void scene_quick_play_enter(Scene *s)
     float avg_radius = 56.f;
     if (qs)
     {
-        if (qs->planet_size == 0) avg_radius = 50.f;
-        else if (qs->planet_size == 1) avg_radius = 60.f;
-        else if (qs->planet_size == 2) avg_radius = 70.f;
+        if (qs->planet_size == 0)
+            avg_radius = 50.f;
+        else if (qs->planet_size == 1)
+            avg_radius = 60.f;
+        else if (qs->planet_size == 2)
+            avg_radius = 70.f;
     }
 
     st->world = world_create(st->svc, seed);
 
-    if(st->world){
+    if (st->world)
+    {
         /* time limit from settings (seconds) */
-        if (tl <= 0.f) tl = -1.f; /* treat non-positive as infinite */
+        if (tl <= 0.f)
+            tl = -1.f; /* treat non-positive as infinite */
         world_set_time_limit(st->world, tl);
         st->world->on_time_over = on_world_time_over;
         st->world->on_time_over_user = s; // pass scene pointer
@@ -121,6 +119,7 @@ void scene_quick_play_enter(Scene *s)
         world_place_player(st->world, 32.f);
         /* Initial enemy placement: scenes control spawning now. */
         spawn_to_maintain(st);
+        st->world->hud = hud_create(st->world->svc, st->world->player);
     }
 }
 void scene_quick_play_leave(Scene *s)

@@ -6,6 +6,7 @@
 #include "../scenes/scene_campaign.h"
 #include "../scenes/overlay_pause.h"
 #include "../scenes/overlay_endgame.h"
+#include "../scenes/overlay_endgame_qp.h"
 #include "../scenes/scene_loading.h"
 
 static SceneVTable vt_menu = {scene_menu_enter, scene_menu_leave, scene_menu_handle_input, scene_menu_update, scene_menu_render};
@@ -13,7 +14,9 @@ static SceneVTable vt_qp_menu = {scene_quick_play_menu_enter, scene_quick_play_m
 static SceneVTable vt_game = {scene_quick_play_enter, scene_quick_play_leave, scene_quick_play_handle_input, scene_quick_play_update, scene_quick_play_render};
 static SceneVTable vt_camp = {scene_campaign_enter, scene_campaign_leave, scene_campaign_handle_input, scene_campaign_update, scene_campaign_render};
 static SceneVTable vt_pause = {overlay_pause_enter, overlay_pause_leave, overlay_pause_handle_input, overlay_pause_update, overlay_pause_render};
+static SceneVTable vt_endgame_qp = {overlay_endgame_qp_enter, overlay_endgame_qp_leave, overlay_endgame_qp_handle_input, overlay_endgame_qp_update, overlay_endgame_qp_render};
 static SceneVTable vt_endgame = {overlay_endgame_enter, overlay_endgame_leave, overlay_endgame_handle_input, overlay_endgame_update, overlay_endgame_render};
+static SceneVTable vt_endgame_camp = {overlay_endgame_enter, overlay_endgame_leave, overlay_endgame_handle_input, overlay_endgame_update, overlay_endgame_render};
 static SceneVTable vt_load = {scene_loading_enter, scene_loading_leave, NULL, scene_loading_update, scene_loading_render};
 
 Scene *scene_create(SceneID id)
@@ -41,7 +44,14 @@ Scene *scene_create(SceneID id)
         s->blocks_under_update = true;
         break;
     case SCENE_OVERLAY_ENDGAME:
-        s->vt = &vt_endgame;
+        /* legacy id -> quickplay endgame overlay */
+        s->vt = &vt_endgame_qp;
+        s->is_overlay = true;
+        s->blocks_under_input = true;
+        s->blocks_under_update = true;
+        break;
+    case SCENE_OVERLAY_ENDGAME_CAMPAIGN:
+        s->vt = &vt_endgame_camp;
         s->is_overlay = true;
         s->blocks_under_input = true;
         s->blocks_under_update = true;

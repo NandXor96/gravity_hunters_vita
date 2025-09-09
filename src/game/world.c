@@ -148,15 +148,14 @@ void world_populate_planets(World *w, unsigned int max_planet_area_percent, floa
             continue; /* couldn't find a spot for this radius this attempt */
         }
 
-        float mass = M_PI * radius * radius;
-        SDL_Texture *tex = texman_get(w->svc->texman, TEX_PLANETS_SHEET);
-        SDL_Rect src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, (tex_idx++) % 16);
-        if (world_add_planet(w, pos.x, pos.y, radius, mass, tex))
+    float mass = M_PI * radius * radius;
+    uint8_t type = (tex_idx++) % 16;
+    if (world_add_planet(w, pos.x, pos.y, radius, type))
         {
             if (w->planet_count > 0)
             {
                 Planet *np = w->planets[w->planet_count - 1];
-                np->src = src;
+        np->src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, type);
             }
             planets_area += mass;
             placed++;
@@ -173,15 +172,14 @@ void world_populate_planets(World *w, unsigned int max_planet_area_percent, floa
         float radius = avg_radius * rng_rangef(&w->rng, 0.75f - MAX_FALLBACK * 0.001f, 1);
         Vec2 pos = world_find_free_position(w, fmax(radius, 50.f), 0, 0, 2.0f * radius, 500);
         if (pos.x < 0.f) { fallback++; continue; }
-        float mass = M_PI * radius * radius;
-        SDL_Texture *tex = texman_get(w->svc->texman, TEX_PLANETS_SHEET);
-        SDL_Rect src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, (tex_idx++) % 16);
-        if (world_add_planet(w, pos.x, pos.y, radius, mass, tex))
+    float mass = M_PI * radius * radius;
+    uint8_t type = (tex_idx++) % 16;
+    if (world_add_planet(w, pos.x, pos.y, radius, type))
         {
             if (w->planet_count > 0)
             {
                 Planet *np = w->planets[w->planet_count - 1];
-                np->src = src;
+        np->src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, type);
             }
         planets_area += mass;
         sum_radii += radius;
@@ -205,8 +203,6 @@ bool world_place_player(World *w, float min_dist_planets)
         ppos = (Vec2){w->svc->display_w * 0.5f, usable_bottom * 0.5f};
     if (!world_add_player(w, ppos.x, ppos.y))
         return false;
-    if (!w->hud)
-        w->hud = hud_create(w->svc, w->player);
     return true;
 }
 void world_destroy(World *w)
@@ -369,13 +365,14 @@ void world_render(World *w, struct Renderer *r)
     collision_debug_draw(w, r);
     #endif
 }
-bool world_add_planet(World *w, float x, float y, float radius, float mass, SDL_Texture *tex)
+bool world_add_planet(World *w, float x, float y, float radius, uint8_t type)
 {
     if (!w)
         return false;
-    // default src (full texture) until assigned by caller
-    SDL_Rect dummy = {0, 0, 0, 0};
-    Planet *p = planet_create(x, y, radius, mass, tex, dummy);
+    float mass = M_PI * radius * radius;
+    SDL_Texture *tex = texman_get(w->svc->texman, TEX_PLANETS_SHEET);
+    SDL_Rect src = texman_sheet_src(w->svc->texman, TEX_PLANETS_SHEET, type);
+    Planet *p = planet_create(x, y, radius, mass, tex, src);
     if (!p)
         return false;
     p->world = w; /* back-reference for spawning effects */

@@ -49,7 +49,7 @@ void world_destroy(World *w);
 void world_update(World *w, float dt);
 void world_render(World *w, struct Renderer *r);
 
-bool world_add_planet(World *w, float x, float y, float radius, float mass, SDL_Texture *tex);
+bool world_add_planet(World *w, float x, float y, float radius, uint8_t type);
 bool world_add_player(World *w, float x, float y);
 bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty);
 int world_register_shooter(World *w);

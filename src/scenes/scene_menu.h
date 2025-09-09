@@ -3,7 +3,7 @@
 
 typedef struct MenuItem { const char* label; int enabled; SceneID target; } MenuItem;
 
-typedef struct SceneMenuState { struct Services* svc; MenuItem* items; int count; int selected; /* input edge state */ int prev_move_up; int prev_move_down; int prev_confirm; } SceneMenuState;
+typedef struct SceneMenuState { struct Services* svc; MenuItem* items; int count; int selected; /* input edge state */ int prev_move_up; int prev_move_down; int prev_confirm; /* frames to suppress input after entering scene */ int suppress_input_frames; } SceneMenuState;
 
 void scene_menu_enter(Scene* s);
 void scene_menu_leave(Scene* s);

@@ -16,7 +16,7 @@ typedef struct MenuEntry
 } MenuEntry;
 
 static const MenuEntry DEFAULT_MENU[] = {
-    {"Campaign", 0, -1},
+    {"Campaign", 1, SCENE_CAMPAIGN},
     {"Quick Play", 1, SCENE_QUICK_PLAY_MENU},
     {"Zen Mode", 0, -1},
     {"Help", 0, -1},
@@ -44,6 +44,8 @@ void scene_menu_enter(Scene *s)
     s->state = st;
     st->svc = app_services();
     scene_menu_setup_state(st);
+    // ignore any already-held input for a few frames to avoid accidental activation
+    st->suppress_input_frames = 4;
 }
 void scene_menu_leave(Scene *s)
 {
@@ -60,6 +62,16 @@ void scene_menu_handle_input(Scene *s, const struct InputState *in)
     SceneMenuState *st = (SceneMenuState *)s->state;
     if (!st || !in)
         return;
+    // if we just entered the menu, suppress currently-held inputs for a few frames
+    if (st->suppress_input_frames > 0)
+    {
+        st->suppress_input_frames -= 1;
+        // still update prev_* to reflect held state so edges are calculated after suppression
+        st->prev_move_up = in->move_up ? 1 : 0;
+        st->prev_move_down = in->move_down ? 1 : 0;
+        st->prev_confirm = in->confirm ? 1 : 0;
+        return;
+    }
     /* Navigate with up/down (DPAD or arrow keys map into input state) */
     /* Edge-detect movement using move_up/move_down booleans (these are held for WASD/Arrows) */
     int up = in->move_up ? 1 : 0;
