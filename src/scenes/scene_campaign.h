@@ -30,6 +30,7 @@ typedef struct SceneCampaignState {
 	uint16_t goal_deaths;
 	uint16_t goal_time;
 	unsigned int rating[3];
+	float level_end_delay;
 	int level_end_handled;
 } SceneCampaignState;
 

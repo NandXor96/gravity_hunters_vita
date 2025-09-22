@@ -18,6 +18,7 @@ void scene_campaign_enter(Scene *s)
     st->world = NULL;
     st->spawns = NULL;
     st->spawn_count = 0;
+    st->level_end_delay = 1.0f;
 
     // For now load a fixed example level from assets/levels
     GameLevel lvl;
@@ -321,7 +322,11 @@ void scene_campaign_update(Scene *s, float dt)
         }
         if (all_spawned && w->enemy_count == 0)
         {
-            st->level_end_handled = 1;
+            st->level_end_delay -= dt;
+
+            if(st->level_end_delay > 0.0f)
+                return;
+
             /* evaluate whether goals are met */
             int goals_met = 1;
             if (st->goal_kills > 0 && w->kills < st->goal_kills)
