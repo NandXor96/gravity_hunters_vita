@@ -1,0 +1,39 @@
+Introduction
+
+You are a Gravity Hunter, a space police.
+Shoot down enemies. Planets bend your shots.
+Use gravity to score big with long flight paths.
+
+
+Controls
+
+Aim (coarse): Left stick (ship faces stick direction)
+Aim (fine): D-Pad Left/Right
+Shot Power: D-Pad Up/Down
+Modifiers: Hold L1 for smaller, R1 for larger steps
+Fire: x
+Thrust: o
+
+
+HUD
+
+Red bar: Health
+Green bar: Shot power
+Yellow bar: Energy (auto-regenerates)
+You need at least 50% energy to start thrusting.
+
+
+Gravity & Scoring
+
+Planets curve projectiles; faster shots curve less.
+Each hit grants points.
+A longer flight time scores more points.
+Shots can travel slightly beyond the screen.
+
+
+Tactics
+
+Reposition to take cover or line up better angles.
+Blend quick, straight shots with slow,
+curving slingshots for high scores.
+Use thrust to dodge enemy fire or adjust your aim.

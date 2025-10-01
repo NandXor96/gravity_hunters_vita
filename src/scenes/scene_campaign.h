@@ -4,6 +4,7 @@
 #include "../game/level_loader.h"
 #include "../game/world.h"
 #include "../services/input.h"
+#include "../game/campaign_levels.h"
 
 typedef struct SpawnEntry {
 	LevelEnemy template;
@@ -28,10 +29,13 @@ typedef struct SceneCampaignState {
 	/* level goals/ratings copied from GameLevel so overlay can evaluate results */
 	uint16_t goal_kills;
 	uint16_t goal_deaths;
-	uint16_t goal_time;
 	unsigned int rating[3];
 	float level_end_delay;
 	int level_end_handled;
+	int level_failed;
+	int player_death_handled;
+	int time_limit_reached;
+	char level_filename[CAMPAIGN_LEVEL_MAX_FILENAME];
 } SceneCampaignState;
 
 void scene_campaign_enter(Scene* s);
@@ -39,3 +43,6 @@ void scene_campaign_leave(Scene* s);
 void scene_campaign_handle_input(Scene* s, const struct InputState* in);
 void scene_campaign_update(Scene* s, float dt);
 void scene_campaign_render(Scene* s, struct Renderer* r);
+
+void scene_campaign_set_level(const char *filename);
+const char *scene_campaign_get_level(void);

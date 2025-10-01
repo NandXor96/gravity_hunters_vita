@@ -14,7 +14,7 @@
 #include "../game/enemy.h"
 #include "overlay_endgame_qp.h"
 
-static uint8_t enemy_difficulty[3] = {120, 170, 210};
+static uint8_t enemy_difficulty[4] = {0, 110, 150, 210};
 static uint8_t enemy_count[3] = {2, 3, 3};
 
 static void on_world_time_over(struct World *w, void *user)
@@ -24,12 +24,12 @@ static void on_world_time_over(struct World *w, void *user)
     if (!scene)
         return;
     SceneQuickPlayState *st = (SceneQuickPlayState *)scene->state;
-    if (!st || st->time_over_handled)
+    if (!st || st->time_over_handled || st->player_death_handled)
         return;
     st->time_over_handled = 1;
     if (st && st->world)
     {
-        overlay_endgame_qp_set_stats(st->world->kills, st->world->deaths, st->world->score);
+        overlay_endgame_qp_set_stats(st->world->kills, st->world->score);
     }
     app_push_overlay(SCENE_OVERLAY_ENDGAME);
 }
@@ -143,13 +143,35 @@ void scene_quick_play_handle_input(Scene *s, const struct InputState *in)
 void scene_quick_play_update(Scene *s, float dt)
 {
     SceneQuickPlayState *st = (SceneQuickPlayState *)s->state;
-    if (st && st->world)
-    {
-        if (st->world->player)
-            player_set_input(st->world->player, &st->last_input);
-        /* Keep a small desired population for Quick Play (scene-managed). */
+    if (!st || !st->world)
+        return;
+
+    if (st->world->player)
+        player_set_input(st->world->player, &st->last_input);
+
+    if (!st->player_death_handled && !st->time_over_handled)
         spawn_to_maintain(st);
-        world_update(st->world, dt);
+
+    world_update(st->world, dt);
+
+    Player *player = st->world->player;
+    if (player && !player->alive && !st->player_death_handled)
+    {
+        st->player_death_handled = 1;
+        st->player_death_delay = 1.0f;
+    }
+
+    if (st->player_death_handled && !st->time_over_handled)
+    {
+        st->player_death_delay -= dt;
+        if (st->player_death_delay <= 0.f)
+        {
+            st->time_over_handled = 1;
+            if (st->world)
+                overlay_endgame_qp_set_stats(st->world->kills, st->world->score);
+            app_push_overlay(SCENE_OVERLAY_ENDGAME);
+        }
+        return;
     }
 }
 void scene_quick_play_render(Scene *s, struct Renderer *r)

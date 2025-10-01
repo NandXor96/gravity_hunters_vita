@@ -21,6 +21,8 @@ typedef struct SceneQuickPlayState
     char hud_text[256];
     struct InputState last_input; // store last input for updates
     int time_over_handled; // guard
+    int player_death_handled;
+    float player_death_delay;
 } SceneQuickPlayState;
 
 void scene_quick_play_pause(Scene *s);

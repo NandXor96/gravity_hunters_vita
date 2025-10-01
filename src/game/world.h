@@ -17,7 +17,7 @@ typedef struct World
     ProjectileSystem projsys;
     struct Explosion* explosions[MAX_EXPLOSIONS];
     int explosion_count;
-    int score, kills, deaths;
+    int score, kills;
     bool active;
     bool paused;
     float proj_oob_margin_factor; // fraction of display size as extra margin (e.g. 0.2f)

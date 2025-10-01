@@ -51,13 +51,31 @@ if(BUILD_VITA)
     FILE ./assets/images/player.png assets/images/player.png
     FILE ./assets/images/enemies_atlas.png assets/images/enemies_atlas.png
     FILE ./assets/images/splashscreen.png assets/images/splashscreen.png
+
+    FILE ./assets/credits.txt assets/credits.txt
+    FILE ./assets/help.txt assets/help.txt
+
+    FILE ./assets/buttons/Vita_Circle.png assets/buttons/Vita_Circle.png
+    FILE ./assets/buttons/Vita_Cross.png assets/buttons/Vita_Cross.png
+
+    # Add all files in assets/licenses/
+    file(GLOB LICENSE_FILES CONFIGURE_DEPENDS assets/licenses/*)
+    foreach(license_file IN LISTS LICENSE_FILES)
+      get_filename_component(license_name ${license_file} NAME)
+      set(VPK_LICENSE_FILE "FILE ./${license_file} assets/licenses/${license_name}")
+      list(APPEND VPK_LICENSE_FILES ${VPK_LICENSE_FILE})
+    endforeach()
+    foreach(vpk_file IN LISTS VPK_LICENSE_FILES)
+      set(VITA_VPK_FILES "${VITA_VPK_FILES}\n    ${vpk_file}")
+    endforeach()
+    # Insert all license files
+    ${VITA_VPK_FILES}
   )
 else()
   find_package(SDL2 REQUIRED)
   find_package(PkgConfig REQUIRED)
-  pkg_check_modules(SDL2IMAGE REQUIRED SDL2_image)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS})
-  target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES} SDL2_ttf m)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS} /opt/homebrew/include)
+  target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} /opt/homebrew/Cellar/sdl2_image/2.8.8/lib/libSDL2_image.dylib /opt/homebrew/Cellar/sdl2_ttf/2.24.0/lib/libSDL2_ttf.dylib m)
   target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_PC)
 endif()
 

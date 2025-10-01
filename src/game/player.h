@@ -27,6 +27,7 @@ typedef struct Player
     float boost_strength;  // additive velocity impulse (pixels/sec)
     int   boost_cost;      // energy per boost
     int   boost_damage_flag; // frame damage flag (reset each update)
+    bool  death_explosion_triggered; // guard to avoid spawning multiple death effects
 } Player;
 Player *player_create(SDL_Texture *tex);
 void player_destroy(Player *p);

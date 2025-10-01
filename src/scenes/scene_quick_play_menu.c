@@ -8,10 +8,11 @@
 #include "../app/app.h"
 #include "scene_quick_play.h"
 #include "../services/texture_manager.h"
+#include "../ui/ui_prompts.h"
 
 static const char *planets_labels[] = {"Low", "Medium", "High"};
 static const char *size_labels[] = {"Small", "Medium", "Large"};
-static const char *difficulty_labels[] = {"Easy", "Medium", "Hard"};
+static const char *difficulty_labels[] = {"Zen", "Easy", "Medium", "Hard"};
 static const int time_values[] = {60, 120, 180, 240, 300, 600};
 static const char *time_labels[] = {"1m", "2m", "3m", "4m", "5m", "10m", "oo"};
 static const int worlds_values[] = {1,2,3,4,5,10,-1};
@@ -25,7 +26,7 @@ void scene_quick_play_menu_enter(Scene *s)
     st->selected_row = 0;
     st->planets_count = 1;
     st->planet_size = 1;
-    st->difficulty = 1;
+    st->difficulty = 2;
     st->time_limit = 1;
     st->worlds = 0;
 }
@@ -50,7 +51,7 @@ void scene_quick_play_menu_handle_input(Scene *s, const struct InputState *in)
     {
         if (st->selected_row == 0) st->planets_count = (st->planets_count - 1 + 3) % 3;
         if (st->selected_row == 1) st->planet_size = (st->planet_size - 1 + 3) % 3;
-        if (st->selected_row == 2) st->difficulty = (st->difficulty - 1 + 3) % 3;
+        if (st->selected_row == 2) st->difficulty = (st->difficulty - 1 + 4) % 4;
         if (st->selected_row == 3) st->time_limit = (st->time_limit - 1 + 7) % 7;
         if (st->selected_row == 4) st->worlds = (st->worlds - 1 + 7) % 7;
     }
@@ -58,7 +59,7 @@ void scene_quick_play_menu_handle_input(Scene *s, const struct InputState *in)
     {
         if (st->selected_row == 0) st->planets_count = (st->planets_count + 1) % 3;
         if (st->selected_row == 1) st->planet_size = (st->planet_size + 1) % 3;
-        if (st->selected_row == 2) st->difficulty = (st->difficulty + 1) % 3;
+        if (st->selected_row == 2) st->difficulty = (st->difficulty + 1) % 4;
         if (st->selected_row == 3) st->time_limit = (st->time_limit + 1) % 7;
         if (st->selected_row == 4) st->worlds = (st->worlds + 1) % 7;
     }
@@ -173,4 +174,7 @@ void scene_quick_play_menu_render(Scene *s, struct Renderer *r)
             renderer_draw_text_centered(r, "Start", (float)cx, text_y, (TextStyle){0});
         }
     }
+
+    if (!app_has_overlay())
+        ui_draw_ok_back_prompts(r, svc, true);
 }

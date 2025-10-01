@@ -18,7 +18,6 @@ static void hud_render_bar(Hud *h, HudBar *b, struct Renderer *r);
 static void hud_render_stat(Hud *h, HudStat *s, struct Renderer *r);
 static void hud_stat_update_time(HudStat *stat, struct World *w, void *user);
 static void hud_stat_update_kills(HudStat *stat, struct World *w, void *user);
-static void hud_stat_update_deaths(HudStat *stat, struct World *w, void *user);
 static void hud_stat_update_points(HudStat *stat, struct World *w, void *user);
 int hud_bar_set_icon(Hud *h, int bar_index, SDL_Texture *tex, SDL_Rect src)
 {
@@ -81,7 +80,6 @@ Hud *hud_create(struct Services *svc, Player *player)
                 SDL_Rect icon0 = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 0);   // speed icon index 2 per user request
                 SDL_Rect icon1 = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 1);   // cooldown icon
                 SDL_Rect icon_hp = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 2); // health icon index 3
-                SDL_Rect icon_deaths = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 3);
                 SDL_Rect icon_points = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 4);
                 SDL_Rect icon_time = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 5);     // time (idx6 user-facing)
                 SDL_Rect icon_kills = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 6);    // kills (idx7 user-facing)
@@ -96,7 +94,7 @@ Hud *hud_create(struct Services *svc, Player *player)
                 // Stats positioning (bottom-right, 2 columns x 2 rows)
                 float margin = 6.f;
                 float row_h = 18.f;
-                float row_gap = 2.f;
+                float row_gap = 4.f; // match vertical spacing between stacked bars
                 float col_gap = 24.f;
                 float text_w = 120.f; // width from text origin to right edge
                 int cols = 2;
@@ -106,12 +104,11 @@ Hud *hud_create(struct Services *svc, Player *player)
                 float total_height = rows * row_h + (rows - 1) * row_gap;
                 float base_x = (float)svc->display_w - margin - total_width;  // left edge of first column text start
                 float base_y = (float)svc->display_h - margin - total_height; // top edge of first row
-                // Grid order mapping: (row0col0)=Deaths, (row1col0)=Kills, (row0col1)=Points, (row1col1)=Time
+                // Grid order mapping: (row1col0)=Kills, (row0col1)=Points, (row1col1)=Time
                 float x_col0 = base_x;
                 float x_col1 = base_x + col_width + col_gap;
                 float y_row0 = base_y;
                 float y_row1 = base_y + row_h + row_gap;
-                int idx_deaths = hud_add_stat(h, x_col0, y_row0, text_w, row_h, icon_deaths, hud_stat_update_deaths, NULL);
                 int idx_kills = hud_add_stat(h, x_col0, y_row1, text_w, row_h, icon_kills, hud_stat_update_kills, NULL);
                 int idx_points = hud_add_stat(h, x_col1, y_row0, text_w, row_h, icon_points, hud_stat_update_points, NULL);
                 int idx_time = hud_add_stat(h, x_col1, y_row1, text_w, row_h, icon_time, hud_stat_update_time, NULL);
@@ -291,8 +288,15 @@ static void hud_render_bar(Hud *h, HudBar *b, struct Renderer *r)
         v = 1.f;
     SDL_FRect fill = base;
     fill.w = base.w * v;
-    SDL_SetRenderDrawColor(r->sdl, b->fill_color.r, b->fill_color.g, b->fill_color.b, b->fill_color.a);
+    SDL_Color fill_color = b->fill_color;
+    bool is_energy_bar = (h && h->weapon_cd_bar_index >= 0 && &h->bars[h->weapon_cd_bar_index] == b);
+    if (is_energy_bar && v < 0.5f)
+    {
+        fill_color = (SDL_Color){210, 140, 40, b->fill_color.a};
+    }
+    SDL_SetRenderDrawColor(r->sdl, fill_color.r, fill_color.g, fill_color.b, fill_color.a);
     SDL_RenderFillRectF(r->sdl, &fill);
+
     SDL_SetRenderDrawColor(r->sdl, 0, 0, 0, 200);
     SDL_RenderDrawRectF(r->sdl, &base);
 }
@@ -324,13 +328,6 @@ static void hud_stat_update_kills(HudStat *stat, struct World *w, void *user)
     if (!stat || !w)
         return;
     snprintf(stat->text, sizeof(stat->text), "%d", w->kills);
-}
-static void hud_stat_update_deaths(HudStat *stat, struct World *w, void *user)
-{
-    (void)user;
-    if (!stat || !w)
-        return;
-    snprintf(stat->text, sizeof(stat->text), "%d", w->deaths);
 }
 static void hud_stat_update_points(HudStat *stat, struct World *w, void *user)
 {

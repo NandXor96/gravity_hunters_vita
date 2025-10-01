@@ -7,12 +7,10 @@
 typedef struct {
     char magic[4];
     uint16_t version;
-    uint8_t time_mode;
-    uint8_t pad;
+    uint16_t reserved;
     uint32_t time_limit;
     uint16_t goal_kills;
     uint16_t goal_deaths;
-    uint16_t goal_time;
     uint32_t rating[3];
     float player_pos_x;
     float player_pos_y;
@@ -83,11 +81,9 @@ int level_load(const char *filename, GameLevel *out, char *err, size_t errlen) {
     // fill basic header fields
     memset(out, 0, sizeof(*out));
     out->version = h.version;
-    out->time_mode = h.time_mode;
     out->time_limit = h.time_limit;
     out->goal_kills = h.goal_kills;
     out->goal_deaths = h.goal_deaths;
-    out->goal_time = h.goal_time;
     out->rating[0] = h.rating[0]; out->rating[1] = h.rating[1]; out->rating[2] = h.rating[2];
     out->player_pos_x = h.player_pos_x; out->player_pos_y = h.player_pos_y; out->player_health = h.player_health;
     out->planets_count = h.planets_count; out->enemies_count = h.enemies_count;
@@ -148,8 +144,8 @@ void level_free(GameLevel *lvl) {
 
 void level_print(const GameLevel *lvl) {
     if (!lvl) return;
-    printf("version=%u time_mode=%u time_limit=%u\n", lvl->version, (unsigned)lvl->time_mode, lvl->time_limit);
-    printf("goal: %u/%u/%u\n", (unsigned)lvl->goal_kills, (unsigned)lvl->goal_deaths, (unsigned)lvl->goal_time);
+    printf("version=%u time_limit=%u\n", lvl->version, lvl->time_limit);
+    printf("goal: %u/%u\n", (unsigned)lvl->goal_kills, (unsigned)lvl->goal_deaths);
     printf("rating: %u, %u, %u\n", lvl->rating[0], lvl->rating[1], lvl->rating[2]);
     printf("player_pos=(%.6f,%.6f) health=%u\n", lvl->player_pos_x, lvl->player_pos_y, lvl->player_health);
     printf("planets_count=%u enemies_count=%u\n", lvl->planets_count, lvl->enemies_count);

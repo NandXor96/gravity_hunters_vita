@@ -13,6 +13,8 @@ typedef enum {
 	TEX_PROJECTILES_SHEET,
 	TEX_ENEMIES_SHEET, /* enemies atlas */
 	TEX_EXPLOSIONS_SHEET, /* procedural multi-type multi-frame explosions */
+	TEX_UI_BUTTON_CROSS,
+	TEX_UI_BUTTON_CIRCLE,
 	TEX__COUNT
 } TextureID;
 

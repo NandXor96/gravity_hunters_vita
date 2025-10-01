@@ -36,13 +36,15 @@ struct TextureSpec
     uint16_t flags, tile_w, tile_h;
 };
 static const struct TextureSpec SPECS[TEX__COUNT] = {
-    [TEX_PLANETS_SHEET] = {"planets", "planets_atlas.png", NULL, TEXF_SHEET, 128, 128},
-    [TEX_PLAYER] = {"player", "player.png", NULL, 0, 0, 0},
+    [TEX_PLANETS_SHEET] = {"planets", "images/planets_atlas.png", NULL, TEXF_SHEET, 128, 128},
+    [TEX_PLAYER] = {"player", "images/player.png", NULL, 0, 0, 0},
     [TEX_BG_STARFIELD] = {"bg_starfield", NULL, gen_nebula, 0, 0, 0},
-    [TEX_ICONS_SHEET] = {"icons", "hud_atlas.png", NULL, TEXF_SHEET, 32, 32},
+    [TEX_ICONS_SHEET] = {"icons", "images/hud_atlas.png", NULL, TEXF_SHEET, 32, 32},
     [TEX_PROJECTILES_SHEET] = {"projectiles", NULL, gen_projectiles_sheet_proc, TEXF_SHEET, 8, 8},
-    [TEX_ENEMIES_SHEET] = {"enemies", "enemies_atlas.png", NULL, TEXF_SHEET, 32, 32},
+    [TEX_ENEMIES_SHEET] = {"enemies", "images/enemies_atlas.png", NULL, TEXF_SHEET, 32, 32},
     [TEX_EXPLOSIONS_SHEET] = {"explosions", NULL, NULL, TEXF_SHEET, 0, 0}, /* generated separately (multi-frame) */
+    [TEX_UI_BUTTON_CROSS] = {"ui_button_cross", "buttons/Vita_Cross.png", NULL, 0, 0, 0},
+    [TEX_UI_BUTTON_CIRCLE] = {"ui_button_circle", "buttons/Vita_Circle.png", NULL, 0, 0, 0},
 };
 TextureManager *texman_create(SDL_Renderer *sdl, const char *assets_root)
 {

@@ -1,6 +1,7 @@
 #include "scene_campaign.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "../services/services.h"
 #include "../services/renderer.h"
 #include "../app/app.h"
@@ -9,6 +10,26 @@
 #include "../game/enemy.h"
 #include "../game/player.h"
 #include "overlay_endgame.h"
+
+static void scene_campaign_on_time_over(World *world, void *user);
+static void scene_campaign_finish(SceneCampaignState *st);
+
+static char g_campaign_level_to_load[CAMPAIGN_LEVEL_MAX_FILENAME] = "example_level.lvl";
+
+void scene_campaign_set_level(const char *filename)
+{
+    if (filename && filename[0])
+        snprintf(g_campaign_level_to_load, sizeof(g_campaign_level_to_load), "%s", filename);
+    else
+        g_campaign_level_to_load[0] = '\0';
+}
+
+const char *scene_campaign_get_level(void)
+{
+    if (g_campaign_level_to_load[0])
+        return g_campaign_level_to_load;
+    return "example_level.lvl";
+}
 
 void scene_campaign_enter(Scene *s)
 {
@@ -20,13 +41,16 @@ void scene_campaign_enter(Scene *s)
     st->spawn_count = 0;
     st->level_end_delay = 1.0f;
 
-    // For now load a fixed example level from assets/levels
+    const char *level_to_load = scene_campaign_get_level();
+
     GameLevel lvl;
     char err[256] = {0};
-    if (level_load("example_level.lvl", &lvl, err, sizeof(err)) != 0)
+    if (level_load(level_to_load, &lvl, err, sizeof(err)) != 0)
     {
         return;
     }
+
+    snprintf(st->level_filename, sizeof(st->level_filename), "%s", level_to_load ? level_to_load : "");
 
     // debug print
     // level_print(&lvl);
@@ -34,13 +58,17 @@ void scene_campaign_enter(Scene *s)
     // create world and populate planets/player based on level
     World *w = world_create(st->svc, 0);
     st->world = w;
-    if (lvl.time_mode == 1)
+    if (st->world)
+    {
+        st->world->on_time_over = scene_campaign_on_time_over;
+        st->world->on_time_over_user = st;
+    }
+    if (lvl.time_limit > 0)
         world_set_time_limit(w, (float)lvl.time_limit);
 
     /* copy goals/ratings into scene state for end-of-level evaluation */
     st->goal_kills = lvl.goal_kills;
     st->goal_deaths = lvl.goal_deaths;
-    st->goal_time = lvl.goal_time;
     st->rating[0] = lvl.rating[0];
     st->rating[1] = lvl.rating[1];
     st->rating[2] = lvl.rating[2];
@@ -122,10 +150,42 @@ void scene_campaign_leave(Scene *s)
     if (!st)
         return;
     if (st->world)
+    {
+        st->world->on_time_over = NULL;
+        st->world->on_time_over_user = NULL;
         world_destroy(st->world);
+    }
     if (st->spawns)
         free(st->spawns);
     free(st);
+}
+
+static void scene_campaign_on_time_over(World *world, void *user)
+{
+    (void)world;
+    SceneCampaignState *st = (SceneCampaignState *)user;
+    if (!st)
+        return;
+    st->time_limit_reached = 1;
+}
+
+static void scene_campaign_finish(SceneCampaignState *st)
+{
+    if (!st || !st->world || st->level_end_handled)
+        return;
+
+    World *w = st->world;
+    int goals_met = 1;
+    if (st->goal_kills > 0 && w->kills < st->goal_kills)
+        goals_met = 0;
+    if (st->level_failed)
+        goals_met = 0;
+
+    overlay_endgame_set_stats(w->kills, w->score);
+    overlay_endgame_set_campaign_result(goals_met, st->rating[0], st->rating[1], st->rating[2]);
+    overlay_endgame_set_campaign_level(st->level_filename);
+    st->level_end_handled = 1;
+    app_push_overlay(SCENE_OVERLAY_ENDGAME_CAMPAIGN);
 }
 
 void scene_campaign_handle_input(Scene *s, const struct InputState *in)
@@ -146,6 +206,36 @@ void scene_campaign_update(Scene *s, float dt)
     if (st->world->player)
         player_set_input(st->world->player, &st->last_input);
     world_update(st->world, dt);
+
+    if (!st->level_end_handled)
+    {
+        Player *player = st->world->player;
+        if (player && !player->alive)
+        {
+            if (!st->player_death_handled)
+            {
+                st->player_death_handled = 1;
+                st->level_failed = 1;
+                st->level_end_delay = 1.0f;
+            }
+            st->level_end_delay -= dt;
+            if (st->level_end_delay > 0.0f)
+                return;
+            st->level_end_delay = 0.0f;
+            scene_campaign_finish(st);
+            return;
+        }
+    }
+
+    if (st->time_limit_reached && !st->level_end_handled)
+    {
+        st->level_end_delay -= dt;
+        if (st->level_end_delay > 0.0f)
+            return;
+        st->level_end_delay = 0.0f;
+        scene_campaign_finish(st);
+        return;
+    }
 
     // process timer-based spawns
     for (uint32_t i = 0; i < st->spawn_count; ++i)
@@ -323,26 +413,11 @@ void scene_campaign_update(Scene *s, float dt)
         if (all_spawned && w->enemy_count == 0)
         {
             st->level_end_delay -= dt;
-
-            if(st->level_end_delay > 0.0f)
+            if (st->level_end_delay > 0.0f)
                 return;
-
-            /* evaluate whether goals are met */
-            int goals_met = 1;
-            if (st->goal_kills > 0 && w->kills < st->goal_kills)
-                goals_met = 0;
-            if (st->goal_deaths > 0 && w->deaths > st->goal_deaths)
-                goals_met = 0;
-            if (st->goal_time > 0 && st->world && st->world->time_limit >= 0.f)
-            {
-                /* if a level time limit existed, check whether elapsed time <= goal_time */
-                if (st->world->time > (float)st->goal_time)
-                    goals_met = 0;
-            }
-            /* provide stats to overlay and campaign-specific result */
-            overlay_endgame_set_stats(w->kills, w->deaths, w->score);
-            overlay_endgame_set_campaign_result(goals_met, st->rating[0], st->rating[1], st->rating[2]);
-            app_push_overlay(SCENE_OVERLAY_ENDGAME_CAMPAIGN);
+            st->level_end_delay = 0.0f;
+            scene_campaign_finish(st);
+            return;
         }
     }
 }

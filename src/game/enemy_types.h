@@ -31,13 +31,13 @@ typedef struct EnemyDef {
 } EnemyDef;
 
 static const EnemyDef ENEMY_DEFS[ENEMY_TYPE_COUNT] = {
-    { ENEMY_ASTRO_ANT, 20, 55.f, 0.8f, true, 300, 120.f, 0.004f, 0.25f, 0.09f, 1.75f, POLY_ASTRO_ANT, (int)(sizeof(POLY_ASTRO_ANT)/sizeof(POLY_ASTRO_ANT[0])), 0, 32.f, 32.f },
-    { ENEMY_FRIGATE,   20, 25.f, 1.2f, true, 800, 40.f, 0.001f, 0.04f, 0.02f, 0.6f, POLY_FRIGATE, (int)(sizeof(POLY_FRIGATE)/sizeof(POLY_FRIGATE[0])), 3, 32.f, 32.f },
-    { ENEMY_HOLO_SHARK,20, 90.f, 0.6f, true, 250, 160.f, 0.004f, 0.09f, 0.04f, 2.0f, POLY_HOLO_SHARK, (int)(sizeof(POLY_HOLO_SHARK)/sizeof(POLY_HOLO_SHARK[0])), 1, 32.f, 32.f },
-    { ENEMY_NOVA_NOMAD,20, 70.f, 0.7f, true, 500, 80.f, 0.0016f, 0.04f, 0.02f, 1.5f, POLY_NOVA_NOMAD, (int)(sizeof(POLY_NOVA_NOMAD)/sizeof(POLY_NOVA_NOMAD[0])), 0, 32.f, 32.f },
-    { ENEMY_PLASMA_PIRATE,20,60.f,0.5f, true, 600, 60.f, 0.0030f, 0.09f, 0.04f, 0.75f, POLY_PLASMA_PIRATE, (int)(sizeof(POLY_PLASMA_PIRATE)/sizeof(POLY_PLASMA_PIRATE[0])), 3, 32.f, 32.f },
-    { ENEMY_SHOCK_BEE, 20,110.f,0.4f, true, 200,220.f, 0.006f, 0.25f, 0.09f, 2.0f, POLY_SHOCK_BEE, (int)(sizeof(POLY_SHOCK_BEE)/sizeof(POLY_SHOCK_BEE[0])), 0, 32.f, 32.f },
-    { ENEMY_SHREDDER_SWALLOW,20,50.f,0.9f, true,450,70.f,0.0018f,0.05f,0.025f,1.25f, POLY_SHREDDER_SWALLOW, (int)(sizeof(POLY_SHREDDER_SWALLOW)/sizeof(POLY_SHREDDER_SWALLOW[0])), 2, 32.f, 32.f },
-    { ENEMY_SPARK_FALCON,20,95.f,0.5f, true,320,140.f,0.0036f,0.045f,0.025f,1.9f, POLY_SPARK_FALCON, (int)(sizeof(POLY_SPARK_FALCON)/sizeof(POLY_SPARK_FALCON[0])), 3, 32.f, 32.f },
-    { ENEMY_WARP_WESP, 20,80.f,0.6f, true,380,100.f,0.0070f,0.3f,0.11f,2.1f, POLY_WARP_WESP, (int)(sizeof(POLY_WARP_WESP)/sizeof(POLY_WARP_WESP[0])), 0, 32.f, 32.f }
+    { ENEMY_ASTRO_ANT, 20, 55.f, 0.8f, true, 300, 120.f, 0.005f, 0.25f, 0.09f, 1.75f, POLY_ASTRO_ANT, (int)(sizeof(POLY_ASTRO_ANT)/sizeof(POLY_ASTRO_ANT[0])), 0, 32.f, 32.f },
+    { ENEMY_FRIGATE,   20, 25.f, 1.2f, true, 800, 40.f, 0.002f, 0.04f, 0.02f, 0.6f, POLY_FRIGATE, (int)(sizeof(POLY_FRIGATE)/sizeof(POLY_FRIGATE[0])), 3, 32.f, 32.f },
+    { ENEMY_HOLO_SHARK,20, 90.f, 0.6f, true, 250, 160.f, 0.005f, 0.09f, 0.04f, 2.0f, POLY_HOLO_SHARK, (int)(sizeof(POLY_HOLO_SHARK)/sizeof(POLY_HOLO_SHARK[0])), 1, 32.f, 32.f },
+    { ENEMY_NOVA_NOMAD,20, 70.f, 0.7f, true, 500, 80.f, 0.0026f, 0.04f, 0.02f, 1.5f, POLY_NOVA_NOMAD, (int)(sizeof(POLY_NOVA_NOMAD)/sizeof(POLY_NOVA_NOMAD[0])), 0, 32.f, 32.f },
+    { ENEMY_PLASMA_PIRATE,20,60.f,0.5f, true, 600, 60.f, 0.004f, 0.09f, 0.04f, 0.75f, POLY_PLASMA_PIRATE, (int)(sizeof(POLY_PLASMA_PIRATE)/sizeof(POLY_PLASMA_PIRATE[0])), 3, 32.f, 32.f },
+    { ENEMY_SHOCK_BEE, 20,110.f,0.4f, true, 200,220.f, 0.007f, 0.25f, 0.09f, 2.0f, POLY_SHOCK_BEE, (int)(sizeof(POLY_SHOCK_BEE)/sizeof(POLY_SHOCK_BEE[0])), 0, 32.f, 32.f },
+    { ENEMY_SHREDDER_SWALLOW,20,50.f,0.9f, true,450,70.f,0.0028f,0.05f,0.025f,1.25f, POLY_SHREDDER_SWALLOW, (int)(sizeof(POLY_SHREDDER_SWALLOW)/sizeof(POLY_SHREDDER_SWALLOW[0])), 2, 32.f, 32.f },
+    { ENEMY_SPARK_FALCON,20,95.f,0.5f, true,320,140.f,0.0046f,0.045f,0.025f,1.9f, POLY_SPARK_FALCON, (int)(sizeof(POLY_SPARK_FALCON)/sizeof(POLY_SPARK_FALCON[0])), 3, 32.f, 32.f },
+    { ENEMY_WARP_WESP, 20,80.f,0.6f, true,380,100.f,0.0080f,0.3f,0.11f,2.1f, POLY_WARP_WESP, (int)(sizeof(POLY_WARP_WESP)/sizeof(POLY_WARP_WESP[0])), 0, 32.f, 32.f }
 };

@@ -7,6 +7,7 @@
 #include "../services/texture_manager.h"
 #include "../services/input.h"
 #include "../app/app.h"
+#include "../ui/ui_prompts.h"
 
 typedef struct MenuEntry
 {
@@ -16,11 +17,10 @@ typedef struct MenuEntry
 } MenuEntry;
 
 static const MenuEntry DEFAULT_MENU[] = {
-    {"Campaign", 1, SCENE_CAMPAIGN},
+    {"Campaign", 1, SCENE_CAMPAIGN_MENU},
     {"Quick Play", 1, SCENE_QUICK_PLAY_MENU},
-    {"Zen Mode", 0, -1},
-    {"Help", 0, -1},
-    {"Credits", 0, -1}};
+    {"Help", 1, SCENE_HELP},
+    {"Credits", 1, SCENE_CREDITS}};
 
 static void scene_menu_setup_state(SceneMenuState *st)
 {
@@ -165,4 +165,7 @@ void scene_menu_render(Scene *s, struct Renderer *r)
         renderer_draw_text_centered(r, label, (float)cx, by + 10.f, (TextStyle){0});
         /* no diagnostic marker */
     }
+
+    if (!app_has_overlay())
+        ui_draw_ok_back_prompts(r, svc, false);
 }

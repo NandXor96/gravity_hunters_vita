@@ -7,9 +7,46 @@
 #include "../services/texture_manager.h"
 #include "../app/app.h"
 #include "../services/input.h"
+#include "../game/campaign_levels.h"
+#include "../game/campaign_progress.h"
+#include "scene_campaign_menu.h"
 
 /* forward decl */
 static void overlay_endgame_copy_saved_to_state(struct OverlayEndgameState *st);
+static void overlay_endgame_record_campaign_progress(const OverlayEndgameState *st);
+
+static int s_saved_kills = 0;
+static int s_saved_points = 0;
+static int s_saved_goals_all_met = -1;
+static unsigned int s_saved_rating[3] = {0, 0, 0};
+static char s_saved_level_filename[CAMPAIGN_LEVEL_MAX_FILENAME] = {0};
+
+static void overlay_endgame_draw_star_row(Renderer *r, SDL_Texture *sheet, SDL_Rect src_filled, SDL_Rect src_empty, float cx, float top_y, int earned)
+{
+    const int total_slots = 3;
+    const float spacing = 10.f;
+    if (!r)
+        return;
+
+    if (sheet && src_filled.w > 0 && src_filled.h > 0 && src_empty.w > 0 && src_empty.h > 0)
+    {
+        float icon_size = (float)src_filled.w;
+        float total_width = (float)total_slots * icon_size + (float)(total_slots - 1) * spacing;
+        float start_x = cx - total_width * 0.5f;
+        for (int i = 0; i < total_slots; ++i)
+        {
+            const SDL_Rect *src = (i < earned) ? &src_filled : &src_empty;
+            SDL_FRect dst = {start_x + i * (icon_size + spacing), top_y, icon_size, icon_size};
+            renderer_draw_texture(r, sheet, src, &dst, 0.f);
+        }
+    }
+    else
+    {
+        char fallback[32];
+        snprintf(fallback, sizeof(fallback), "Stars: %d/%d", earned, total_slots);
+        renderer_draw_text_centered(r, fallback, cx, top_y, (TextStyle){0});
+    }
+}
 
 void overlay_endgame_enter(Scene *s)
 {
@@ -22,6 +59,7 @@ void overlay_endgame_enter(Scene *s)
     st->selected = 0;
     st->has_level_result = 0;
     overlay_endgame_copy_saved_to_state(st);
+    overlay_endgame_record_campaign_progress(st);
 }
 void overlay_endgame_leave(Scene *s)
 {
@@ -37,8 +75,15 @@ void overlay_endgame_handle_input(Scene *s, const struct InputState *in)
     int confirm = in->confirm ? 1 : 0;
     if (confirm && !st->prev_confirm)
     {
-        /* Ok pressed: go back to main menu and pop overlay */
-        app_set_scene(SCENE_MENU);
+        if (st->has_level_result)
+        {
+            scene_campaign_menu_focus_last_unlocked();
+            app_set_scene(SCENE_CAMPAIGN_MENU);
+        }
+        else
+        {
+            app_set_scene(SCENE_MENU);
+        }
         app_pop_overlay();
         return;
     }
@@ -46,7 +91,8 @@ void overlay_endgame_handle_input(Scene *s, const struct InputState *in)
 }
 void overlay_endgame_update(Scene *s, float dt)
 {
-    (void)s; (void)dt;
+    (void)s;
+    (void)dt;
 }
 void overlay_endgame_render(Scene *s, struct Renderer *r)
 {
@@ -61,66 +107,31 @@ void overlay_endgame_render(Scene *s, struct Renderer *r)
     int cx = svc->display_w / 2;
     int title_y = 80;
 
-    if (st->has_level_result && !st->goals_all_met)
-    {
-        renderer_draw_text_centered(r, "LEVEL FAILED", (float)cx, (float)title_y, (TextStyle){0});
-        /* don't render stars when failed; optionally show stats */
-        int y = 140;
-        char buf[128];
-        renderer_draw_text_centered(r, "Final Stats", (float)cx, (float)y, (TextStyle){0});
-        y += 36;
-        snprintf(buf, sizeof(buf), "Kills: %d", st->kills);
-        renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-        y += 28;
-        snprintf(buf, sizeof(buf), "Deaths: %d", st->deaths);
-        renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-        y += 28;
-        snprintf(buf, sizeof(buf), "Points: %d", st->points);
-        renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-    }
-    else if (st->has_level_result && st->goals_all_met)
-    {
-        renderer_draw_text_centered(r, "LEVEL FINISHED", (float)cx, (float)title_y, (TextStyle){0});
-        /* compute stars: compare st->points against rating thresholds; rating[0]..[2]
-         * We render 3 symbols: 'O' for obtained, 'o' for not obtained. */
-        int stars = 0;
-        if (st->points >= (int)st->rating[2])
-            stars = 3;
-        else if (st->points >= (int)st->rating[1])
-            stars = 2;
-        else if (st->points >= (int)st->rating[0])
-            stars = 1;
+    SDL_Texture *icons_sheet = texman_get(svc->texman, TEX_ICONS_SHEET);
+    SDL_Rect star_src_filled = icons_sheet ? texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 4) : (SDL_Rect){0};
+    SDL_Rect star_src_empty = icons_sheet ? texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 8) : (SDL_Rect){0};
+    SDL_Rect kill_icon_src = icons_sheet ? texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 6) : (SDL_Rect){0};
 
-        /* Render stars as text centered underneath the title. */
-        int y = 140;
-        char stars_buf[8] = {0};
-        for (int i = 0; i < 3; ++i)
-            stars_buf[i] = (i < stars) ? 'O' : 'o';
-        renderer_draw_text_centered(r, stars_buf, (float)cx, (float)y, (TextStyle){0});
+    int stars = 0;
+    if (st->points >= (int)st->rating[2])
+        stars = 3;
+    else if (st->points >= (int)st->rating[1])
+        stars = 2;
+    else if (st->points >= (int)st->rating[0])
+        stars = 1;
 
-        /* show points too */
-        char buf[128];
-        y += 36;
-        snprintf(buf, sizeof(buf), "Points: %d", st->points);
-        renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-    }
-    else
-    {
-        /* fallback: no level result provided (e.g. quickplay). Show generic summary */
-        renderer_draw_text_centered(r, "GAME OVER", (float)cx, (float)title_y, (TextStyle){0});
-        int y = 140;
-        char buf[128];
-        renderer_draw_text_centered(r, "Final Stats", (float)cx, (float)y, (TextStyle){0});
-        y += 36;
-        snprintf(buf, sizeof(buf), "Kills: %d", st->kills);
-        renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-        y += 28;
-        snprintf(buf, sizeof(buf), "Deaths: %d", st->deaths);
-        renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-        y += 28;
-        snprintf(buf, sizeof(buf), "Points: %d", st->points);
-        renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-    }
+    int cleared = (st->goals_all_met && stars > 0) ? 1 : 0;
+    renderer_draw_text_centered(r, cleared ? "LEVEL CLEARED" : "LEVEL FAILED", (float)cx, (float)title_y, (TextStyle){0});
+
+    float content_y = title_y + 40.f;
+    overlay_endgame_draw_star_row(r, icons_sheet, star_src_filled, star_src_empty, (float)cx, content_y, stars);
+    float star_height = (float)((star_src_filled.h > 0) ? star_src_filled.h : 32);
+    content_y += star_height + 10.f;
+
+    char points_buf[32];
+    snprintf(points_buf, sizeof(points_buf), "%d", st->points);
+    renderer_draw_text_centered(r, points_buf, (float)cx, content_y, (TextStyle){0});
+    content_y += 44.f;
 
     /* single Ok button */
     int box_w = 240;
@@ -133,44 +144,28 @@ void overlay_endgame_render(Scene *s, struct Renderer *r)
     renderer_draw_text_centered(r, "Ok", (float)cx, by + 10.f, (TextStyle){0});
 }
 
-void overlay_endgame_set_stats(int kills, int deaths, int points)
-{
-    /* store into global overlay state singleton-ish: try to find existing overlay state
-     * if present, set values; otherwise set defaults via static globals. For simplicity,
-     * set static globals and also update current scene state if active. */
-    Scene *top = NULL; /* we don't have direct access to scene stack here; update current instance if present */
-    /* Fallback: update global stat store (per overlay instance on enter it's copied) */
-    /* TODO: keep simple: use file-level static hard store */
-    extern void overlay_endgame_set_stats_internal(int, int, int);
-    overlay_endgame_set_stats_internal(kills, deaths, points);
-}
-
-/* Internal static storage and helper to allow overlay_endgame_set_stats to work before overlay is created. */
-static int s_saved_kills = 0;
-static int s_saved_deaths = 0;
-static int s_saved_points = 0;
-void overlay_endgame_set_stats_internal(int kills, int deaths, int points)
+void overlay_endgame_set_stats(int kills, int points)
 {
     s_saved_kills = kills;
-    s_saved_deaths = deaths;
     s_saved_points = points;
 }
 
 void overlay_endgame_set_campaign_result(int goals_all_met, unsigned int rating0, unsigned int rating1, unsigned int rating2)
 {
-    /* store into saved area; when overlay enters it will copy these */
-    extern void overlay_endgame_set_campaign_result_internal(int, unsigned int, unsigned int, unsigned int);
-    overlay_endgame_set_campaign_result_internal(goals_all_met, rating0, rating1, rating2);
+    s_saved_goals_all_met = goals_all_met ? 1 : 0;
+    s_saved_rating[0] = rating0;
+    s_saved_rating[1] = rating1;
+    s_saved_rating[2] = rating2;
 }
 
-static int s_saved_goals_all_met = 0;
-static unsigned int s_saved_rating[3] = {0,0,0};
-void overlay_endgame_set_campaign_result_internal(int goals_all_met, unsigned int r0, unsigned int r1, unsigned int r2)
+void overlay_endgame_set_campaign_level(const char *filename)
 {
-    s_saved_goals_all_met = goals_all_met ? 1 : 0;
-    s_saved_rating[0] = r0;
-    s_saved_rating[1] = r1;
-    s_saved_rating[2] = r2;
+    if (!filename || !filename[0])
+    {
+        s_saved_level_filename[0] = '\0';
+        return;
+    }
+    snprintf(s_saved_level_filename, sizeof(s_saved_level_filename), "%s", filename);
 }
 
 /* When overlay enters, copy saved values into state */
@@ -178,16 +173,48 @@ static void overlay_endgame_copy_saved_to_state(OverlayEndgameState *st)
 {
     if (!st)
         return;
+
     st->kills = s_saved_kills;
-    st->deaths = s_saved_deaths;
     st->points = s_saved_points;
-    st->has_level_result = s_saved_goals_all_met >= 0 ? 1 : 0; // we always set it via setter when needed
-    st->goals_all_met = s_saved_goals_all_met;
-    st->rating[0] = s_saved_rating[0];
-    st->rating[1] = s_saved_rating[1];
-    st->rating[2] = s_saved_rating[2];
+
+    st->has_level_result = (s_saved_goals_all_met >= 0) ? 1 : 0;
+    st->goals_all_met = (s_saved_goals_all_met > 0) ? 1 : 0;
+
+    if (st->has_level_result)
+    {
+        st->rating[0] = s_saved_rating[0];
+        st->rating[1] = s_saved_rating[1];
+        st->rating[2] = s_saved_rating[2];
+    }
+    else
+    {
+        st->rating[0] = st->rating[1] = st->rating[2] = 0;
+    }
 }
 
-/* Ensure that overlay_endgame_enter copies saved data */
-/* We'll patch overlay_endgame_enter above to call overlay_endgame_copy_saved_to_state after creating state. */
+static void overlay_endgame_record_campaign_progress(const OverlayEndgameState *st)
+{
+    if (!st)
+        return;
+    if (!st->has_level_result || !st->goals_all_met)
+        return;
+    if (!s_saved_level_filename[0])
+        return;
 
+    int stars = 0;
+    if (st->points >= (int)st->rating[2])
+        stars = 3;
+    else if (st->points >= (int)st->rating[1])
+        stars = 2;
+    else if (st->points >= (int)st->rating[0])
+        stars = 1;
+
+    if (stars <= 0)
+        return;
+
+    CampaignProgress *progress = campaign_progress_data();
+    if (!progress)
+        return;
+
+    campaign_progress_update(progress, s_saved_level_filename, (uint8_t)stars, st->points);
+}

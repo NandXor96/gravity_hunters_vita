@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "time_limit": 120,
+  "start_text": "Defend the base! Or do whatever you want I guess. Just stay calm and alive.",
+  "goal": {
+    "kills": 3,
+    "deaths": 0
+  },
+  "rating": [400, 410, 420],
+  "player": {
+    "pos": [480, 80],
+    "health": 100
+  },
+  "planets": [
+  { "type": 1, "size": 50, "pos": [150, 150] },
+  { "type": 2, "size": 50, "pos": [400, 400] }
+  ],
+  "enemies": [
+  { "type": 1, "pos": [220, 220], "difficulty": 80, "health": 30, "spawn_when": { "kind": "on_start", "delay": 0 } },
+  { "type": 2, "pos": [300, 350], "difficulty": 255, "health": 60, "spawn_when": { "kind": "on_death", "arg": 1, "delay": 1 } },
+  { "type": 3, "pos": [330, 300], "difficulty": 255, "health": 60, "spawn_when": { "kind": "on_death", "arg": 1, "delay": 2 } }
+  ]
+}

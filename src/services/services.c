@@ -17,7 +17,12 @@ void services_init(Services* s){
   s->sdl_renderer = SDL_CreateRenderer(s->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   s->renderer = renderer_create(s->sdl_renderer);
   s->input = input_create();
-  s->texman = texman_create(s->sdl_renderer, "./assets/images");
+#ifdef PLATFORM_VITA
+  const char *assets_root = "app0:/assets";
+#else
+  const char *assets_root = "./assets";
+#endif
+  s->texman = texman_create(s->sdl_renderer, assets_root);
   texman_load_textures(s->texman, 1337u);
   g_texman = s->texman;
 }

@@ -1,5 +1,5 @@
-Schriftart Comic Shanns 2
-https://github.com/shannpersand/comic-shanns:
+The used font is the Comic Shanns 2 by Shannon Miwa
+https://github.com/shannpersand/comic-shanns and licensed under the MIT License.
 
 MIT License
 

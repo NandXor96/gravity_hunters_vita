@@ -12,6 +12,7 @@
 #include "../core/time.h"
 #include "../core/types.h"
 #include "../services/texture_manager.h"
+#include "../game/campaign_progress.h"
 
 struct App {
     struct Services* services;
@@ -46,6 +47,12 @@ bool app_create(void) {
     g_app->services = services_get();
     services_init(g_app->services); // create renderer etc.
 
+    if (!campaign_progress_data())
+    {
+        fprintf(stderr, "[app] Warning: failed to load campaign progress from %s\n",
+                campaign_progress_default_path());
+    }
+
     scenestack_init(&g_app->stack);
     if (!scenestack_set_base(&g_app->stack, SCENE_MENU)) {
         fprintf(stderr, "Failed to create initial menu scene\n");
@@ -58,6 +65,7 @@ bool app_create(void) {
 void app_destroy(void) {
     if (!g_app) return;
     scenestack_shutdown(&g_app->stack);
+    campaign_progress_shutdown();
     services_shutdown(g_app->services);
     SDL_Quit();
     free(g_app);
@@ -67,6 +75,10 @@ void app_destroy(void) {
 bool app_set_scene(SceneID id) { return scenestack_set_base(&g_app->stack, id); }
 bool app_push_overlay(SceneID id) { return scenestack_push(&g_app->stack, id); }
 void app_pop_overlay(void) { scenestack_pop(&g_app->stack); }
+bool app_has_overlay(void)
+{
+    return g_app && g_app->stack.overlay_count > 0;
+}
 
 void app_update(void) {
     if(!g_app) return;

@@ -29,11 +29,9 @@ typedef struct {
 typedef struct {
     // header fields
     uint16_t version;
-    uint8_t time_mode;
     uint32_t time_limit;
     uint16_t goal_kills;
     uint16_t goal_deaths;
-    uint16_t goal_time;
     uint32_t rating[3];
     float player_pos_x;
     float player_pos_y;

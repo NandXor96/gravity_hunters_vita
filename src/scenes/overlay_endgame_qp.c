@@ -10,7 +10,6 @@
 
 /* Stored stats populated via overlay_endgame_qp_set_stats() */
 static int g_kills_qp = 0;
-static int g_deaths_qp = 0;
 static int g_points_qp = 0;
 
 void overlay_endgame_qp_enter(Scene *s)
@@ -70,9 +69,6 @@ void overlay_endgame_qp_render(Scene *s, struct Renderer *r)
     snprintf(buf, sizeof(buf), "Kills: %d", g_kills_qp);
     renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
     y += 28;
-    snprintf(buf, sizeof(buf), "Deaths: %d", g_deaths_qp);
-    renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
-    y += 28;
     snprintf(buf, sizeof(buf), "Points: %d", g_points_qp);
     renderer_draw_text_centered(r, buf, (float)cx, (float)y, (TextStyle){0});
 
@@ -87,9 +83,8 @@ void overlay_endgame_qp_render(Scene *s, struct Renderer *r)
     renderer_draw_text_centered(r, "Ok", (float)cx, by + 10.f, (TextStyle){0});
 }
 
-void overlay_endgame_qp_set_stats(int kills, int deaths, int points)
+void overlay_endgame_qp_set_stats(int kills, int points)
 {
     g_kills_qp = kills;
-    g_deaths_qp = deaths;
     g_points_qp = points;
 }

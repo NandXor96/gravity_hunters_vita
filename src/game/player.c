@@ -10,9 +10,34 @@ static const float PI_F = 3.14159265358979323846f;
 #include "world.h" // for world_fire_projectile
 #include "weapon.h"
 
+static void player_trigger_death_effect(Player *p)
+{
+    if (!p || p->death_explosion_triggered)
+        return;
+    if (!p->world)
+        return;
+    Services *svc = services_get();
+    if (!svc || !svc->texman)
+        return;
+    int types = texman_explosion_type_count(svc->texman);
+    int type = 0;
+    if (types > 0)
+    {
+        if (types >= 3)
+            type = 2;
+        else
+            type = types - 1;
+    }
+    float scale = 1.4f;
+    world_add_explosion(p->world, type, p->e.pos.x, p->e.pos.y, scale);
+    p->death_explosion_triggered = true;
+}
+
 static void player_render(Entity *e, struct Renderer *r)
 {
     Player *p = (Player *)e;
+    if (!p || !p->alive)
+        return;
     SDL_FRect dst = {p->e.pos.x - p->e.size.x * 0.5f, p->e.pos.y - p->e.size.y * 0.5f, p->e.size.x, p->e.size.y};
     float angle_deg = (p->e.angle + p->e.angle_offset) * (180.0f / PI_F);
     renderer_draw_texture(r, p->e.texture, NULL, &dst, angle_deg);
@@ -22,6 +47,11 @@ static void player_update(Entity *e, float dt)
     Player *p = (Player *)e;
     if (!p)
         return;
+    if (!p->alive)
+    {
+        player_trigger_death_effect(p);
+        return;
+    }
     // Track original position to detect movement for polygon dirty flag
     float oldx = p->e.pos.x;
     float oldy = p->e.pos.y;
@@ -203,6 +233,7 @@ static void player_on_hit_entity(Entity *e, Entity *hitter)
         if (p->health <= 0)
         {
             p->alive = false;
+            player_trigger_death_effect(p);
         }
         if (pr)
             pr->active = false; // deactivate projectile only on valid hit
@@ -210,7 +241,7 @@ static void player_on_hit_entity(Entity *e, Entity *hitter)
          * if available; fall back to 0 if the texture manager provides fewer
          * types. Position at the projectile hit while player still alive,
          * otherwise at the player's position. Scale mirrors enemy logic. */
-        if (p->world)
+        if (p->world && p->alive)
         {
             Services *svc = services_get();
             if (svc && svc->texman)
@@ -221,21 +252,9 @@ static void player_on_hit_entity(Entity *e, Entity *hitter)
                     type = 0;
                 else if (type >= types)
                     type = type % types;
-                float x;
-                float y;
-                float scale;
-                if (p->alive)
-                {
-                    x = hitter->pos.x;
-                    y = hitter->pos.y;
-                    scale = 0.5f;
-                }
-                else
-                {
-                    x = p->e.pos.x;
-                    y = p->e.pos.y;
-                    scale = 0.8f;
-                }
+                float x = hitter ? hitter->pos.x : p->e.pos.x;
+                float y = hitter ? hitter->pos.y : p->e.pos.y;
+                float scale = 0.5f;
                 world_add_explosion(p->world, type, x, y, scale);
             }
         }
@@ -315,7 +334,10 @@ static void player_on_collide_entity(Entity *self, Entity *other)
                     dmg = 1;
                 p->health -= dmg;
                 if (p->health <= 0)
+                {
                     p->alive = false;
+                    player_trigger_death_effect(p);
+                }
                 p->boost_damage_flag = 1; // only set when damage applied
             }
         }
@@ -361,6 +383,7 @@ Player *player_create(SDL_Texture *tex)
     p->boost_strength = 100.f;
     p->boost_cost = 400;
     p->boost_damage_flag = 0;
+    p->death_explosion_triggered = false;
     return p;
 }
 void player_destroy(Player *p)

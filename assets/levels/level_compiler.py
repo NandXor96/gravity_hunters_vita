@@ -24,12 +24,6 @@ VERSION = 1
 MAX_PLANETS = 1024
 MAX_ENEMIES = 1024
 
-# Enums (explicit names, no magic numbers inline)
-TIME_MODE = {
-    'countup': 0,
-    'limit': 1,
-}
-
 PLANET_TYPE = {
     'unknown': 0,
     'rocky': 1,
@@ -45,12 +39,6 @@ ENEMY_TYPE = {
     'shooter': 3,
 }
 
-DIFFICULTY = {
-    'easy': 1,
-    'medium': 2,
-    'hard': 3,
-}
-
 SPAWN_KIND = {
     'on_start': 0,
     'on_timer': 1,
@@ -59,9 +47,9 @@ SPAWN_KIND = {
 
 # Struct formats (little-endian)
 # Header fixed part stops before start_text which is a nul-terminated utf-8 string
-HEADER_FMT = '<4sHBBIHHH3IffIII'
-# fields: magic(4s), version(H), time_mode(B), pad(B), time_limit(I),
-# goal_kills(H), goal_deaths(H), goal_time(H), rating[3](3I),
+HEADER_FMT = '<4sHHIHH3IffIII'
+# fields: magic(4s), version(H), reserved(H), time_limit(I),
+# goal_kills(H), goal_deaths(H), rating[3](3I),
 # player_pos_x(f), player_pos_y(f), player_health(I), planets_count(I), enemies_count(I)
 
 PLANET_FMT = '<Bfff'  # type(uint8), size(float), pos_x(float), pos_y(float)
@@ -125,6 +113,34 @@ def parse_spawn_when(s):
     raise ValueError(f'unrecognized spawn_when: {s}')
 
 
+def parse_difficulty(value):
+    if value is None:
+        raise ValueError('enemy difficulty is required')
+    if isinstance(value, bool):
+        raise ValueError('enemy difficulty must be an integer between 0 and 255')
+    if isinstance(value, (int, float)):
+        if isinstance(value, float):
+            if not value.is_integer():
+                raise ValueError(f'enemy difficulty must be an integer, got {value!r}')
+            ivalue = int(value)
+        else:
+            ivalue = int(value)
+    elif isinstance(value, str):
+        stripped = value.strip()
+        if stripped == '':
+            raise ValueError('enemy difficulty must be an integer between 0 and 255')
+        try:
+            ivalue = int(stripped, 10)
+        except ValueError as exc:
+            raise ValueError(f'enemy difficulty must be an integer, got {value!r}') from exc
+    else:
+        raise ValueError(f'enemy difficulty has unsupported type {type(value)!r}')
+
+    if ivalue < 0 or ivalue > 255:
+        raise ValueError(f'enemy difficulty must be within 0..255, got {ivalue}')
+    return ivalue
+
+
 # --------------------------- Main builder ---------------------------
 
 def build_level(json_path: Path, out_path: Path):
@@ -133,16 +149,11 @@ def build_level(json_path: Path, out_path: Path):
 
     # Header fields with defaults
     version = int(data.get('version', VERSION))
-    time_mode_s = data.get('time_mode', 'countup')
-    if time_mode_s not in TIME_MODE:
-        raise ValueError(f'unknown time_mode: {time_mode_s}')
-    time_mode = TIME_MODE[time_mode_s]
     time_limit = clamp_u32(data.get('time_limit', 0))
 
     goal = data.get('goal', {})
     goal_kills = clamp_u16(goal.get('kills', 0))
     goal_deaths = clamp_u16(goal.get('deaths', 0))
-    goal_time = clamp_u16(goal.get('time_seconds', 0))
 
     rating = data.get('rating', [0, 0, 0])
     if not (isinstance(rating, list) and len(rating) == 3):
@@ -198,8 +209,7 @@ def build_level(json_path: Path, out_path: Path):
         pos = e.get('pos', [0.0, 0.0])
         ex = float(pos[0])
         ey = float(pos[1])
-        difficulty_s = e.get('difficulty', 'easy')
-        difficulty = DIFFICULTY.get(difficulty_s, DIFFICULTY['easy'])
+        difficulty = parse_difficulty(e.get('difficulty'))
         health = clamp_u32(e.get('health', 0))
         spawn_when_raw = e.get('spawn_when', 'on_start')
         spawn_kind, spawn_arg, spawn_delay = parse_spawn_when(spawn_when_raw)
@@ -248,12 +258,10 @@ def build_level(json_path: Path, out_path: Path):
         HEADER_FMT,
         MAGIC,
         int(version),
-        int(time_mode),
-        0,  # pad
+        0,
         int(time_limit),
         int(goal_kills),
         int(goal_deaths),
-        int(goal_time),
         int(rating[0]),
         int(rating[1]),
         int(rating[2]),

@@ -22,6 +22,7 @@ bool app_set_scene(SceneID id);
 // Overlays
 bool app_push_overlay(SceneID id);
 void app_pop_overlay(void);
+bool app_has_overlay(void);
 
 // Services accessor
 struct Services* app_services(void);
