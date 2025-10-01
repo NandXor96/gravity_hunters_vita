@@ -8,8 +8,7 @@ struct World;
 
 typedef float (*HudBarValueFn)(struct World *w, void *user); // returns normalized 0..1
 
-typedef struct HudBar
-{
+typedef struct HudBar {
     SDL_FRect rect; // screen-space rect; rect.x,rect.y are explicit top-left
     SDL_Color fill_color;
     SDL_Color bg_color;
@@ -24,8 +23,7 @@ typedef struct HudBar
 #define HUD_MAX_BARS 8
 #define HUD_MAX_STATS 8
 
-typedef struct HudStat
-{
+typedef struct HudStat {
     SDL_FRect rect; // area including space for icon
     char text[64];
     bool visible;
@@ -37,12 +35,11 @@ typedef struct HudStat
     SDL_Rect extra_icon_src;
     bool has_extra_icon;
     // dynamic provider (optional). If set, called each frame to refresh text buffer.
-    void (*update_fn)(struct HudStat* stat, struct World* w, void* user);
+    void (*update_fn)(struct HudStat *stat, struct World *w, void* user);
     void *user_data;
 } HudStat;
 
-typedef struct Hud
-{
+typedef struct Hud {
     struct Services *svc;
     struct World *world;   // back-ref for value functions
     struct Player *player; // single player reference

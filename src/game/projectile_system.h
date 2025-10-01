@@ -4,8 +4,7 @@
 #include "../services/texture_manager.h"
 #include "../services/renderer.h"
 
-typedef struct ShooterPool
-{
+typedef struct ShooterPool {
     struct Projectile *items[MAX_PROJECTILES_PER_SHOOTER];
     int head;
     float last_fire_time;
@@ -13,8 +12,7 @@ typedef struct ShooterPool
     int pending_unregister; // 1 = waiting to be freed when head reaches 0
 } ShooterPool;
 
-typedef struct ProjectileSystem
-{
+typedef struct ProjectileSystem {
     ShooterPool shooters[MAX_SHOOTERS];
     int shooter_count;
     TextureManager *texman; // for tinted projectile textures

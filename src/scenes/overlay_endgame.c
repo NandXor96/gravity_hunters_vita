@@ -10,6 +10,7 @@
 #include "../game/campaign_levels.h"
 #include "../game/campaign_progress.h"
 #include "scene_campaign_menu.h"
+#include "../core/log.h"
 
 /* forward decl */
 static void overlay_endgame_copy_saved_to_state(struct OverlayEndgameState *st);
@@ -21,36 +22,42 @@ static int s_saved_goals_all_met = -1;
 static unsigned int s_saved_rating[3] = {0, 0, 0};
 static char s_saved_level_filename[CAMPAIGN_LEVEL_MAX_FILENAME] = {0};
 
-static void overlay_endgame_draw_star_row(Renderer *r, SDL_Texture *sheet, SDL_Rect src_filled, SDL_Rect src_empty, float cx, float top_y, int earned)
-{
+static void overlay_endgame_draw_star_row(Renderer *r, SDL_Texture *sheet, SDL_Rect src_filled, SDL_Rect src_empty, float cx, float top_y, int earned) {
+
     const int total_slots = 3;
     const float spacing = 10.f;
     if (!r)
         return;
 
-    if (sheet && src_filled.w > 0 && src_filled.h > 0 && src_empty.w > 0 && src_empty.h > 0)
-    {
+    if (sheet && src_filled.w > 0 && src_filled.h > 0 && src_empty.w > 0 && src_empty.h > 0) {
         float icon_size = (float)src_filled.w;
         float total_width = (float)total_slots * icon_size + (float)(total_slots - 1) * spacing;
         float start_x = cx - total_width * 0.5f;
-        for (int i = 0; i < total_slots; ++i)
-        {
+        for (int i = 0; i < total_slots; ++i) {
             const SDL_Rect *src = (i < earned) ? &src_filled : &src_empty;
-            SDL_FRect dst = {start_x + i * (icon_size + spacing), top_y, icon_size, icon_size};
+            SDL_FRect dst = {start_x + i * (icon_size + spacing), top_y, icon_size, icon_size
+
+};
             renderer_draw_texture(r, sheet, src, &dst, 0.f);
         }
     }
-    else
-    {
+    else {
         char fallback[32];
         snprintf(fallback, sizeof(fallback), "Stars: %d/%d", earned, total_slots);
-        renderer_draw_text_centered(r, fallback, cx, top_y, (TextStyle){0});
+        renderer_draw_text_centered(r, fallback, cx, top_y, (TextStyle) {
+            0
+        });
     }
 }
 
-void overlay_endgame_enter(Scene *s)
-{
+void overlay_endgame_enter(Scene *s) {
+
     OverlayEndgameState *st = calloc(1, sizeof(OverlayEndgameState));
+    if (!st) {
+        LOG_ERROR("overlay_endgame", "Failed to allocate overlay state");
+        return;
+
+}
     s->state = st;
     s->is_overlay = true;
     s->blocks_under_input = true;
@@ -61,27 +68,22 @@ void overlay_endgame_enter(Scene *s)
     overlay_endgame_copy_saved_to_state(st);
     overlay_endgame_record_campaign_progress(st);
 }
-void overlay_endgame_leave(Scene *s)
-{
+void overlay_endgame_leave(Scene *s) {
     OverlayEndgameState *st = (OverlayEndgameState *)s->state;
     if (st)
         free(st);
 }
-void overlay_endgame_handle_input(Scene *s, const struct InputState *in)
-{
+void overlay_endgame_handle_input(Scene *s, const struct InputState *in) {
     OverlayEndgameState *st = (OverlayEndgameState *)s->state;
     if (!st || !in)
         return;
     int confirm = in->confirm ? 1 : 0;
-    if (confirm && !st->prev_confirm)
-    {
-        if (st->has_level_result)
-        {
+    if (confirm && !st->prev_confirm) {
+        if (st->has_level_result) {
             scene_campaign_menu_focus_last_unlocked();
             app_set_scene(SCENE_CAMPAIGN_MENU);
-        }
-        else
-        {
+}
+        else {
             app_set_scene(SCENE_MENU);
         }
         app_pop_overlay();
@@ -89,20 +91,21 @@ void overlay_endgame_handle_input(Scene *s, const struct InputState *in)
     }
     st->prev_confirm = confirm;
 }
-void overlay_endgame_update(Scene *s, float dt)
-{
+void overlay_endgame_update(Scene *s, float dt) {
     (void)s;
     (void)dt;
 }
-void overlay_endgame_render(Scene *s, struct Renderer *r)
-{
+void overlay_endgame_render(Scene *s, struct Renderer *r) {
     OverlayEndgameState *st = (OverlayEndgameState *)s->state;
     if (!st)
         return;
     struct Services *svc = st->svc;
     /* Draw a semi-transparent black rectangle behind the overlay (50% alpha) */
-    SDL_FRect dst = {0, 0, (float)svc->display_w, (float)svc->display_h};
-    renderer_draw_filled_rect(r, dst, (SDL_Color){0, 0, 0, (Uint8)(0.50f * 255)});
+    SDL_FRect dst = {0, 0, (float)svc->display_w, (float)svc->display_h
+};
+    renderer_draw_filled_rect(r, dst, (SDL_Color) {
+        0, 0, 0, (Uint8)(0.50f * 255)
+    });
 
     int cx = svc->display_w / 2;
     int title_y = 80;
@@ -139,38 +142,43 @@ void overlay_endgame_render(Scene *s, struct Renderer *r)
     float bx = (float)(cx - box_w / 2);
     float by = (float)(svc->display_h - 120);
     SDL_FRect box = {bx, by, (float)box_w, (float)box_h};
-    renderer_draw_filled_rect(r, box, (SDL_Color){34, 34, 34, 255});
-    renderer_draw_rect_outline(r, box, (SDL_Color){255, 200, 80, 255}, 2);
+    renderer_draw_filled_rect(r, box, (SDL_Color) {
+        34, 34, 34, 255
+    });
+    renderer_draw_rect_outline(r, box, (SDL_Color) {
+        255, 200, 80, 255
+    }, 2);
     renderer_draw_text_centered(r, "Ok", (float)cx, by + 10.f, (TextStyle){0});
 }
 
-void overlay_endgame_set_stats(int kills, int points)
-{
+void overlay_endgame_set_stats(int kills, int points) {
+
     s_saved_kills = kills;
     s_saved_points = points;
+
 }
 
-void overlay_endgame_set_campaign_result(int goals_all_met, unsigned int rating0, unsigned int rating1, unsigned int rating2)
-{
+void overlay_endgame_set_campaign_result(int goals_all_met, unsigned int rating0, unsigned int rating1, unsigned int rating2) {
+
     s_saved_goals_all_met = goals_all_met ? 1 : 0;
     s_saved_rating[0] = rating0;
     s_saved_rating[1] = rating1;
     s_saved_rating[2] = rating2;
+
 }
 
-void overlay_endgame_set_campaign_level(const char *filename)
-{
-    if (!filename || !filename[0])
-    {
+void overlay_endgame_set_campaign_level(const char *filename) {
+
+    if (!filename || !filename[0]) {
         s_saved_level_filename[0] = '\0';
         return;
-    }
+
+}
     snprintf(s_saved_level_filename, sizeof(s_saved_level_filename), "%s", filename);
 }
 
 /* When overlay enters, copy saved values into state */
-static void overlay_endgame_copy_saved_to_state(OverlayEndgameState *st)
-{
+static void overlay_endgame_copy_saved_to_state(OverlayEndgameState *st) {
     if (!st)
         return;
 
@@ -180,20 +188,18 @@ static void overlay_endgame_copy_saved_to_state(OverlayEndgameState *st)
     st->has_level_result = (s_saved_goals_all_met >= 0) ? 1 : 0;
     st->goals_all_met = (s_saved_goals_all_met > 0) ? 1 : 0;
 
-    if (st->has_level_result)
-    {
+    if (st->has_level_result) {
         st->rating[0] = s_saved_rating[0];
         st->rating[1] = s_saved_rating[1];
         st->rating[2] = s_saved_rating[2];
-    }
-    else
-    {
+}
+    else {
         st->rating[0] = st->rating[1] = st->rating[2] = 0;
     }
 }
 
-static void overlay_endgame_record_campaign_progress(const OverlayEndgameState *st)
-{
+static void overlay_endgame_record_campaign_progress(const OverlayEndgameState *st) {
+
     if (!st)
         return;
     if (!st->has_level_result || !st->goals_all_met)
@@ -217,4 +223,5 @@ static void overlay_endgame_record_campaign_progress(const OverlayEndgameState *
         return;
 
     campaign_progress_update(progress, s_saved_level_filename, (uint8_t)stars, st->points);
+
 }

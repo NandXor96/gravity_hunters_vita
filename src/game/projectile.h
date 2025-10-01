@@ -29,7 +29,7 @@ void projectile_destroy(Projectile *p);
 void projectile_update_trail(Projectile *p);
 
 // Context for per-projectile update (gravity from planets, collisions, bounds)
-struct Planet; struct Player; struct Enemy; 
+struct Planet; struct Player; struct Enemy;
 typedef struct ProjectileUpdateCtx {
     struct Planet **planets; int planet_count;
     struct Player *player;

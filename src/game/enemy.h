@@ -5,8 +5,7 @@
 #include "../core/math.h"
 
 struct World; // forward
-typedef enum EnemyType
-{
+typedef enum EnemyType {
     ENEMY_ASTRO_ANT = 0,
     ENEMY_FRIGATE,
     ENEMY_HOLO_SHARK,
@@ -78,8 +77,7 @@ typedef struct AimState {
  * values live here. Fields use compact integer types where practical to save
  * memory on constrained platforms.
  */
-typedef struct Enemy
-{
+typedef struct Enemy {
     Entity e;
     uint8_t type; /* stores EnemyType values (0..ENEMY_TYPE_COUNT-1) in a compact form */
     bool alive;

@@ -6,6 +6,9 @@
 #include "../services/input.h"
 #include "../game/campaign_levels.h"
 
+// Timing constants
+#define LEVEL_END_DELAY_SECONDS 1.0f
+
 typedef struct SpawnEntry {
 	LevelEnemy template;
 	int spawned; // boolean
@@ -17,10 +20,10 @@ typedef struct SpawnEntry {
 	float scheduled_time; // for delayed on-death spawns (-1 = none)
 } SpawnEntry;
 
-typedef struct SceneCampaignState { 
-	struct Services* svc; 
-	u32 current_level_seed; 
-	int level_index; 
+typedef struct SceneCampaignState {
+	struct Services *svc;
+	u32 current_level_seed;
+	int level_index;
 	World *world;
 	SpawnEntry *spawns;
 	uint32_t spawn_count;
@@ -38,11 +41,11 @@ typedef struct SceneCampaignState {
 	char level_filename[CAMPAIGN_LEVEL_MAX_FILENAME];
 } SceneCampaignState;
 
-void scene_campaign_enter(Scene* s);
-void scene_campaign_leave(Scene* s);
-void scene_campaign_handle_input(Scene* s, const struct InputState* in);
-void scene_campaign_update(Scene* s, float dt);
-void scene_campaign_render(Scene* s, struct Renderer* r);
+void scene_campaign_enter(Scene *s);
+void scene_campaign_leave(Scene *s);
+void scene_campaign_handle_input(Scene *s, const struct InputState *in);
+void scene_campaign_update(Scene *s, float dt);
+void scene_campaign_render(Scene *s, struct Renderer *r);
 
 void scene_campaign_set_level(const char *filename);
 const char *scene_campaign_get_level(void);

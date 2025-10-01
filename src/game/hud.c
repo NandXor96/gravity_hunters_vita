@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "../core/types.h"
+#include "../core/log.h"
 
 // Forward static value & render helper
 static float hud_value_shot_speed(struct World *w, void *user);
@@ -19,8 +20,7 @@ static void hud_render_stat(Hud *h, HudStat *s, struct Renderer *r);
 static void hud_stat_update_time(HudStat *stat, struct World *w, void *user);
 static void hud_stat_update_kills(HudStat *stat, struct World *w, void *user);
 static void hud_stat_update_points(HudStat *stat, struct World *w, void *user);
-int hud_bar_set_icon(Hud *h, int bar_index, SDL_Texture *tex, SDL_Rect src)
-{
+int hud_bar_set_icon(Hud *h, int bar_index, SDL_Texture *tex, SDL_Rect src) {
     if (!h)
         return 0;
     if (bar_index < 0 || bar_index >= h->bar_count)
@@ -32,9 +32,13 @@ int hud_bar_set_icon(Hud *h, int bar_index, SDL_Texture *tex, SDL_Rect src)
     return 1;
 }
 
-Hud *hud_create(struct Services *svc, Player *player)
-{
+Hud *hud_create(struct Services *svc, Player *player) {
+
     Hud *h = calloc(1, sizeof(Hud));
+    if (!h) {
+        LOG_ERROR("hud", "Failed to allocate HUD");
+        return NULL;
+    }
     h->svc = svc;
     h->visible = true;
     h->bar_count = 0;
@@ -46,8 +50,7 @@ Hud *hud_create(struct Services *svc, Player *player)
     h->health_bar_index = -1;
     h->stat_count = 0;
     // Build bars immediately if player valid
-    if (player)
-    {
+    if (player) {
         SDL_Color bg = {30, 30, 30, 160};
         SDL_Color fg = {120, 220, 120, 220};
         // width 180, height 14 (previous order was swapped)
@@ -72,11 +75,9 @@ Hud *hud_create(struct Services *svc, Player *player)
         h->health_bar_index = hud_add_bar(h, hp_x, hp_y, hp_width, hp_height, hp_fg, hp_bg, hud_value_player_health, player);
 
         // fetch icon texture from texture manager and attach icons to bars & stats
-        if (svc && svc->texman)
-        {
+        if (svc && svc->texman) {
             SDL_Texture *sheet = texman_get(svc->texman, TEX_ICONS_SHEET);
-            if (sheet)
-            {
+            if (sheet) {
                 SDL_Rect icon0 = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 0);   // speed icon index 2 per user request
                 SDL_Rect icon1 = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 1);   // cooldown icon
                 SDL_Rect icon_hp = texman_sheet_src(svc->texman, TEX_ICONS_SHEET, 2); // health icon index 3
@@ -113,19 +114,16 @@ Hud *hud_create(struct Services *svc, Player *player)
                 int idx_points = hud_add_stat(h, x_col1, y_row0, text_w, row_h, icon_points, hud_stat_update_points, NULL);
                 int idx_time = hud_add_stat(h, x_col1, y_row1, text_w, row_h, icon_time, hud_stat_update_time, NULL);
                 // Store infinite icon in user_data of time stat if needed during update
-                if (idx_time >= 0)
-                {
+                if (idx_time >= 0) {
                     // misuse user_data: keep pointer to infinite icon src index? We'll handle in update using world->time_limit
-                }
+        }
                 // Assign icon textures
-                for (int si = 0; si < h->stat_count; ++si)
-                {
+                for (int si = 0; si < h->stat_count; ++si) {
                     h->stats[si].icon_tex = sheet;
                     h->stats[si].has_icon = true;
                 }
                 // Override time icon to infinite variant if world time_limit == -1 at first creation (will also adjust dynamically in update)
-                if (h->world && h->world->time_limit < 0.f && idx_time >= 0)
-                {
+                if (h->world && h->world->time_limit < 0.f && idx_time >= 0) {
                     h->stats[idx_time].icon_src = icon_infinite;
                 }
             }
@@ -135,23 +133,19 @@ Hud *hud_create(struct Services *svc, Player *player)
     }
     return h;
 }
-void hud_destroy(Hud *h)
-{
+void hud_destroy(Hud *h) {
     if (!h)
         return;
     // h->tex_hud is owned by texture manager; do NOT destroy here
     free(h);
 }
-void hud_update(Hud *h, struct World *w, float dt)
-{
+void hud_update(Hud *h, struct World *w, float dt) {
     if (h)
         h->world = w;
     (void)dt;
     // update stats dynamic text
-    if (h && w)
-    {
-        for (int i = 0; i < h->stat_count; i++)
-        {
+    if (h && w) {
+        for (int i = 0; i < h->stat_count; i++) {
             HudStat *s = &h->stats[i];
             if (!s->visible)
                 continue;
@@ -161,17 +155,16 @@ void hud_update(Hud *h, struct World *w, float dt)
     }
 }
 // no anchor resolution needed anymore
-void hud_render(Hud *h, struct Renderer *r)
-{
+void hud_render(Hud *h, struct Renderer *r) {
     if (!h || !h->visible)
         return;
     // Static background: full width strip at bottom of screen with fixed height
-    if(h->svc){
+    if (h->svc){
         float dh = (float)h->svc->display_h;
         float dw = (float)h->svc->display_w;
         float hgt = HUD_BG_HEIGHT;
-        if(hgt > dh) hgt = dh; // clamp
-        SDL_FRect bg = { 0.f, dh - hgt, dw, hgt };
+        if (hgt > dh) hgt = dh; // clamp
+        SDL_FRect bg = { 0.f, dh - hgt, dw, hgt};
         SDL_SetRenderDrawColor(r->sdl, 8, 8, 16, HUD_BG_ALPHA);
         SDL_RenderFillRectF(r->sdl, &bg);
         SDL_SetRenderDrawColor(r->sdl, 40, 40, 60, HUD_BG_BORDER_ALPHA);
@@ -182,8 +175,7 @@ void hud_render(Hud *h, struct Renderer *r)
     for (int i = 0; i < h->stat_count; i++) hud_render_stat(h, &h->stats[i], r);
 }
 
-int hud_add_stat(Hud *h, float x, float y, float w, float hgt, SDL_Rect icon_src, void (*update_fn)(HudStat *, struct World *, void *), void *user_data)
-{
+int hud_add_stat(Hud *h, float x, float y, float w, float hgt, SDL_Rect icon_src, void (*update_fn)(HudStat *, struct World *, void *), void *user_data) {
     if (!h || h->stat_count >= HUD_MAX_STATS)
         return -1;
     HudStat *s = &h->stats[h->stat_count++];
@@ -200,8 +192,8 @@ int hud_add_stat(Hud *h, float x, float y, float w, float hgt, SDL_Rect icon_src
     return h->stat_count - 1;
 }
 
-int hud_add_bar(Hud *h, float x, float y, float length, float height, SDL_Color fill, SDL_Color bg, HudBarValueFn fn, void *user_data)
-{
+int hud_add_bar(Hud *h, float x, float y, float length, float height, SDL_Color fill, SDL_Color bg, HudBarValueFn fn, void *user_data) {
+
     if (!h || h->bar_count >= HUD_MAX_BARS)
         return -1;
     HudBar *b = &h->bars[h->bar_count++];
@@ -218,8 +210,7 @@ int hud_add_bar(Hud *h, float x, float y, float length, float height, SDL_Color 
 }
 
 // Shot speed value function (expects user_data = Player*)
-static float hud_value_shot_speed(struct World *w, void *user)
-{
+static float hud_value_shot_speed(struct World *w, void *user) {
     (void)w;
     Player *p = (Player *)user;
     if (!p || !p->weapon)
@@ -231,8 +222,7 @@ static float hud_value_shot_speed(struct World *w, void *user)
 }
 
 // Weapon cooldown progress (time since last shot / cooldown), clamped 0..1
-static float hud_value_weapon_cooldown(struct World *w, void *user)
-{
+static float hud_value_weapon_cooldown(struct World *w, void *user) {
     Player *p = (Player *)user;
     if (!p || !p->weapon || !w)
         return 0.f;
@@ -248,8 +238,7 @@ static float hud_value_weapon_cooldown(struct World *w, void *user)
 }
 
 // Player health normalized
-static float hud_value_player_health(struct World *w, void *user)
-{
+static float hud_value_player_health(struct World *w, void *user) {
     (void)w;
     Player *p = (Player *)user;
     if (!p)
@@ -265,14 +254,12 @@ static float hud_value_player_health(struct World *w, void *user)
 }
 
 // Render a single bar (background, fill, border)
-static void hud_render_bar(Hud *h, HudBar *b, struct Renderer *r)
-{
+static void hud_render_bar(Hud *h, HudBar *b, struct Renderer *r) {
     if (!b || !b->visible || !b->value_fn)
         return;
     // Icon (reserve space at left if present)
     float icon_offset = 0.f;
-    if (b->has_icon && b->icon_tex)
-    {
+    if (b->has_icon && b->icon_tex) {
         float icon_size = b->rect.h; // square
         SDL_FRect idst = {b->rect.x - icon_size - 4.f, b->rect.y, icon_size, b->rect.h};
         renderer_draw_texture(r, b->icon_tex, &b->icon_src, &idst, 0.f);
@@ -290,8 +277,7 @@ static void hud_render_bar(Hud *h, HudBar *b, struct Renderer *r)
     fill.w = base.w * v;
     SDL_Color fill_color = b->fill_color;
     bool is_energy_bar = (h && h->weapon_cd_bar_index >= 0 && &h->bars[h->weapon_cd_bar_index] == b);
-    if (is_energy_bar && v < 0.5f)
-    {
+    if (is_energy_bar && v < 0.5f) {
         fill_color = (SDL_Color){210, 140, 40, b->fill_color.a};
     }
     SDL_SetRenderDrawColor(r->sdl, fill_color.r, fill_color.g, fill_color.b, fill_color.a);
@@ -301,14 +287,13 @@ static void hud_render_bar(Hud *h, HudBar *b, struct Renderer *r)
     SDL_RenderDrawRectF(r->sdl, &base);
 }
 
-static void hud_render_stat(Hud *h, HudStat *s, struct Renderer *r)
-{
+static void hud_render_stat(Hud *h, HudStat *s, struct Renderer *r) {
+
     if (!s || !s->visible)
         return;
     float icon_size = s->rect.h;
     float icon_x = s->rect.x - icon_size - 4.f;
-    if (s->has_icon && s->icon_tex)
-    {
+    if (s->has_icon && s->icon_tex) {
         SDL_FRect idst = {icon_x, s->rect.y, icon_size, s->rect.h};
         renderer_draw_texture(r, s->icon_tex, &s->icon_src, &idst, 0.f);
     }
@@ -317,36 +302,33 @@ static void hud_render_stat(Hud *h, HudStat *s, struct Renderer *r)
         SDL_FRect edst = {s->rect.x, s->rect.y + HUD_STAT_EXTRA_ICON_OFFSET_Y, icon_size, s->rect.h};
         renderer_draw_texture(r, s->extra_icon_tex, &s->extra_icon_src, &edst, 0.f);
     } else {
-        renderer_draw_text(r, s->text, s->rect.x, s->rect.y + HUD_STAT_TEXT_OFFSET_Y, (TextStyle){0});
+        renderer_draw_text(r, s->text, s->rect.x, s->rect.y + HUD_STAT_TEXT_OFFSET_Y, (TextStyle) {
+            0
+        });
     }
 }
 
 // Stat update helpers
-static void hud_stat_update_kills(HudStat *stat, struct World *w, void *user)
-{
+static void hud_stat_update_kills(HudStat *stat, struct World *w, void *user) {
     (void)user;
     if (!stat || !w)
         return;
     snprintf(stat->text, sizeof(stat->text), "%d", w->kills);
 }
-static void hud_stat_update_points(HudStat *stat, struct World *w, void *user)
-{
+static void hud_stat_update_points(HudStat *stat, struct World *w, void *user) {
     (void)user;
     if (!stat || !w)
         return;
     snprintf(stat->text, sizeof(stat->text), "%d", w->score);
 }
-static void hud_stat_update_time(HudStat *stat, struct World *w, void *user)
-{
+static void hud_stat_update_time(HudStat *stat, struct World *w, void *user) {
     (void)user;
     if (!stat || !w)
         return;
-    if (w->time_limit < 0.f)
-    {
+    if (w->time_limit < 0.f) {
         // show base time icon + infinity as extra icon; hide text
         stat->text[0] = '\0';
-        if (w->svc && w->svc->texman && stat->icon_tex)
-        {
+        if (w->svc && w->svc->texman && stat->icon_tex) {
             // main icon stays time (sheet index 5), extra icon is infinity (index 7)
             stat->icon_src = texman_sheet_src(w->svc->texman, TEX_ICONS_SHEET, 5);
             stat->extra_icon_tex = stat->icon_tex;
@@ -354,8 +336,7 @@ static void hud_stat_update_time(HudStat *stat, struct World *w, void *user)
             stat->has_extra_icon = true;
         }
     }
-    else
-    {
+    else {
         // timed: show countdown with time icon (index 5)
         stat->has_extra_icon = false;
         stat->extra_icon_tex = NULL;

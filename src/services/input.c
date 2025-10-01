@@ -5,21 +5,22 @@
 
 #include "../core/types.h"
 
-static void repeat_update(struct RepeatState *rs, int is_down, unsigned int now, bool *out_step)
-{
+static void repeat_update(struct RepeatState *rs, int is_down, unsigned int now, bool *out_step) {
+
     *out_step = false;
     if (is_down) {
         if (!rs->held) {
             rs->held = 1;
             rs->first_press_time_ms = now;
             rs->next_time_ms = now; // immediate tap step
-        }
+
+}
         if (now >= rs->next_time_ms) {
             *out_step = true;
             if (now - rs->first_press_time_ms < REPEAT_INITIAL_DELAY) {
                 // still inside initial delay window: schedule the next trigger exactly at end of delay
                 rs->next_time_ms = rs->first_press_time_ms + REPEAT_INITIAL_DELAY;
-            } else {
+        } else {
                 // after initial delay: fire every frame (set next time to now so next frame will trigger again)
                 rs->next_time_ms = now;
             }
@@ -30,14 +31,17 @@ static void repeat_update(struct RepeatState *rs, int is_down, unsigned int now,
 }
 
 Input *input_create(void) {
+
     Input *in = calloc(1, sizeof(Input));
     in->controller = SDL_GameControllerOpen(0);
     return in;
+
 }
-void input_destroy(Input *in) { free(in); }
-void input_poll(Input *in, InputState *out)
-{
-    if(!out) return;
+void input_destroy(Input *in) {
+    free(in);
+}
+void input_poll(Input *in, InputState *out) {
+    if (!out) return;
     // clear step outputs each poll (they are edge style)
     out->speed_up_step = out->speed_down_step = false;
     out->turn_left_step = out->turn_right_step = false;
@@ -95,7 +99,7 @@ void input_poll(Input *in, InputState *out)
         out->stick_active = false;
         out->stick_strength = 0.f;
         out->stick_angle = 0.f;
-    } else {
+} else {
         float nm = (mag - STICK_DEADZONE) / (1.f - STICK_DEADZONE);
         if (nm < 0.f) nm = 0.f; if (nm > 1.f) nm = 1.f;
         out->stick_strength = nm;

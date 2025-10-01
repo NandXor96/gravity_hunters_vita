@@ -10,6 +10,7 @@
 #include "../services/services.h"
 #include "planet.h"
 #include "enemy_types.h"
+#include "entity_helpers.h"
 
 #include "../core/types.h"
 
@@ -25,12 +26,12 @@
  * This helper is used by the enemy shot-search to evaluate candidate
  * trajectories.
  */
-static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 player_pos, float angle, float strength, float hit_radius)
-{
+static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 player_pos, float angle, float strength, float hit_radius) {
     if (!w)
         return 1e9f;
     Vec2 pos = origin;
-    Vec2 vel = (Vec2){cosf(angle) * strength, sinf(angle) * strength};
+    Vec2 vel = (Vec2){cosf(angle) * strength, sinf(angle) * strength
+};
     float t = 0.f;
     /* Work in squared distances to avoid sqrt inside the loop */
     float min_dist2 = 1e30f;
@@ -44,11 +45,10 @@ static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 pla
     const float sim_dt = FIXED_DT;
     const float sim_max_time = SIM_MAX_PROJECTILE_TIME;
 
-    while (t < sim_max_time)
-    {
+    while (t < sim_max_time) {
+
         /* gravity from planets */
-        for (int i = 0; i < w->planet_count; ++i)
-        {
+        for (int i = 0; i < w->planet_count; ++i) {
             struct Planet *pl = w->planets[i];
             if (!pl)
                 continue;
@@ -62,8 +62,7 @@ static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 pla
             /* Hit planet: if projectile hits planet body, compute distance to player at this point
              * and if that distance is smaller than current best, update and abort (projectile destroyed).
              */
-            if (dist2 <= pl->radius_sq)
-            {
+            if (dist2 <= pl->radius_sq) {
                 float pdx = pos.x - player_pos.x;
                 float pdy = pos.y - player_pos.y;
                 float pd2 = pdx * pdx + pdy * pdy;
@@ -111,8 +110,7 @@ static float simulate_projectile_min_dist(struct World *w, Vec2 origin, Vec2 pla
  * Uses the enemy's texture and world position to draw the sprite. Rotation
  * is applied according to the entity angle and angle_offset fields.
  */
-static void enemy_render(Entity *e, struct Renderer *r)
-{
+static void enemy_render(Entity *e, struct Renderer *r) {
     if (!e || e->type != ENT_ENEMY)
         return;
     Enemy *en = (Enemy *)e;
@@ -120,11 +118,9 @@ static void enemy_render(Entity *e, struct Renderer *r)
         return;
     // Use sprite sheet index = enemy type
     SDL_Rect src = {0, 0, 0, 0};
-    if (en->e.texture)
-    {
+    if (en->e.texture) {
         Services *svc = services_get();
-        if (svc && svc->texman)
-        {
+        if (svc && svc->texman) {
             src = texman_sheet_src(svc->texman, TEX_ENEMIES_SHEET, (int)en->type);
         }
     }
@@ -140,43 +136,32 @@ static void enemy_render(Entity *e, struct Renderer *r)
  *
  * Handles energy regeneration and dispatches to the AI update path.
  */
-static void enemy_update(Entity *e, float dt)
-{
+static void enemy_update(Entity *e, float dt) {
     Enemy *enemy = (Enemy *)e;
     if (!enemy || !enemy->alive)
         return;
     /* energy regeneration */
-    if (enemy->energy_regen_rate > 0.f)
-    {
-        enemy->energy += enemy->energy_regen_rate * dt;
-        if (enemy->energy > (float)enemy->energy_max)
-            enemy->energy = (float)enemy->energy_max;
-    }
+    entity_regenerate_energy(&enemy->energy, enemy->energy_regen_rate, enemy->energy_max, dt);
     /* AI update (shooting etc.) */
     /* Smooth rotation toward aim target if a shot is pending.
      * If aim_rotate_speed is zero, snap immediately and fire.
      */
-    if (enemy->aim.queued)
-    {
+    if (enemy->aim.queued) {
         float cur = enemy->e.angle;
         float target = enemy->aim.target_angle;
         float diff = atan2f(sinf(target - cur), cosf(target - cur));
         float max_step = enemy->aim.rotate_speed * dt;
-        if (max_step <= 0.f || fabsf(diff) <= max_step)
-        {
+        if (max_step <= 0.f || fabsf(diff) <= max_step) {
             enemy->e.angle = target;
         }
-        else
-        {
+        else {
             enemy->e.angle += (diff > 0.f ? 1.f : -1.f) * max_step;
         }
         /* If aligned within tolerance, perform the pending shot here (synchronous). */
         float remain = atan2f(sinf(target - enemy->e.angle), cosf(target - enemy->e.angle));
-        if (fabsf(remain) <= 0.05f)
-        {
+        if (fabsf(remain) <= 0.05f) {
             bool fired = world_fire_projectile(enemy->world, enemy->shooter_index, (Entity *)enemy, enemy->aim.target_angle, enemy->aim.queued_strength);
-            if (fired)
-            {
+            if (fired) {
                 weapon_on_fired(enemy->weapon, enemy->world->time);
                 enemy->energy -= (float)enemy->weapon->energy_cost;
                 if (enemy->energy < 0.f)
@@ -195,15 +180,13 @@ static void enemy_update(Entity *e, float dt)
  * Applies damage from projectiles, handles scoring, death, and explosion
  * creation.
  */
-static void enemy_on_hit(Entity *e, Entity *hitter)
-{
+static void enemy_on_hit(Entity *e, Entity *hitter) {
     if (!e || e->type != ENT_ENEMY)
         return;
     Enemy *en = (Enemy *)e;
     if (!en->alive)
         return;
-    if (hitter && hitter->type == ENT_PROJECTILE)
-    {
+    if (hitter && hitter->type == ENT_PROJECTILE) {
         struct Projectile *pr = (struct Projectile *)hitter;
 
         // Friendly fire filter: ignore projectiles fired by other enemies
@@ -222,8 +205,7 @@ static void enemy_on_hit(Entity *e, Entity *hitter)
             en->world->score += pr->flight_time * 20; // Todo: Examine if 20 is appropriate
 
         // When health is zero or below
-        if (en->health <= 0)
-        {
+        if (en->health <= 0) {
             en->alive = false; // die
 
             // Increase world kills
@@ -239,14 +221,11 @@ static void enemy_on_hit(Entity *e, Entity *hitter)
             pr->active = false;
 
         // Add Explosion
-        if (en->world)
-        {
+        if (en->world) {
             Services *svc = services_get();
-            if (svc && svc->texman)
-            {
+            if (svc && svc->texman) {
                 int types = texman_explosion_type_count(svc->texman);
-                if (types > 0)
-                {
+                if (types > 0) {
                     int type = en->explosion_type;
                     if (type < 0)
                         type = 0;
@@ -256,15 +235,13 @@ static void enemy_on_hit(Entity *e, Entity *hitter)
                     float y;
                     float scale;
                     // Use projectile position on hit where player don't die
-                    if (en->alive)
-                    {
+                    if (en->alive) {
                         x = hitter->pos.x;
                         y = hitter->pos.y;
                         scale = 0.5f;
                     }
                     // Use enemy position if killed
-                    else
-                    {
+                    else {
                         x = en->e.pos.x;
                         y = en->e.pos.y;
                         scale = 0.8f;
@@ -282,19 +259,19 @@ static void enemy_on_hit(Entity *e, Entity *hitter)
  * The world spawns enemies via its own API; this generic factory is not
  * used and returns NULL.
  */
-static Entity *enemy_create_entity(void *params)
-{
+static Entity *enemy_create_entity(void *params) {
     (void)params; // new path shouldn't use generic factory directly
     return NULL;  // not used; enemies spawned via world_spawn_enemy
 }
-static void enemy_destroy_entity(Entity *e) { enemy_destroy((Enemy *)e); }
+static void enemy_destroy_entity(Entity *e) {
+    enemy_destroy((Enemy *)e);
+}
 /**
  * @brief Physical collision callback (contact) for enemies.
  *
  * Currently a placeholder — no damage or response applied here.
  */
-static void enemy_on_collide(Entity *self, Entity *other)
-{
+static void enemy_on_collide(Entity *self, Entity *other) {
     if (!self || self->type != ENT_ENEMY)
         return;
     Enemy *en = (Enemy *)self;
@@ -306,8 +283,7 @@ static void enemy_on_collide(Entity *self, Entity *other)
 static const EntityVTable ENEMY_VT = {enemy_create_entity, enemy_destroy_entity, enemy_update, enemy_render, enemy_on_hit, enemy_on_collide};
 
 /* --- Type specific init helpers -------------------------------------------------- */
-static SDL_Texture *enemy_base_texture(void)
-{
+static SDL_Texture *enemy_base_texture(void) {
     Services *svc = services_get();
     if (!svc || !svc->texman)
         return NULL;
@@ -321,16 +297,14 @@ static SDL_Texture *enemy_base_texture(void)
  * the cached best solution in the enemy's ShotCache. The search is
  * deterministic and spreads work over multiple frames.
  */
-static void enemy_update_shot_search(Enemy *en, World *w)
-{
+static void enemy_update_shot_search(Enemy *en, World *w) {
     if (!en || !w || !w->player || !en->weapon)
         return;
     // If cache invalid or player/enemy moved, reset progressive search
     Vec2 player_pos = w->player->e.pos;
     Vec2 origin = en->e.pos;
     if (!en->shot.valid || en->shot.last_player_pos.x != player_pos.x || en->shot.last_player_pos.y != player_pos.y ||
-        en->shot.last_enemy_pos.x != origin.x || en->shot.last_enemy_pos.y != origin.y)
-    {
+        en->shot.last_enemy_pos.x != origin.x || en->shot.last_enemy_pos.y != origin.y) {
         en->shot.last_player_pos = player_pos;
         en->shot.last_enemy_pos = origin;
         en->shot.angle = atan2f(player_pos.y - origin.y, player_pos.x - origin.x);
@@ -347,16 +321,14 @@ static void enemy_update_shot_search(Enemy *en, World *w)
         en->shot.search_radius_str = 0.5f; // ±50% strength
         en->shot.search_grid_n = 5;        // 5x5 grid
         en->shot.search_idx = 0;
-    }
+}
 
     // progressive sampling: few iterations per call
     int to_run = en->shot.search_per_frame;
     int n = en->shot.search_grid_n > 1 ? en->shot.search_grid_n : 3;
     int cells = n * n;
-    while (to_run-- > 0 && en->shot.search_done < en->shot.search_total && en->shot.best_dist > ENEMY_SHOT_HIT_RADIUS)
-    {
-        if (en->shot.search_idx >= cells)
-        {
+    while (to_run-- > 0 && en->shot.search_done < en->shot.search_total && en->shot.best_dist > ENEMY_SHOT_HIT_RADIUS) {
+        if (en->shot.search_idx >= cells) {
             // refinement step: move center to best found, shrink radius, reset grid
             en->shot.search_base_angle = en->shot.angle;
             en->shot.search_base_strength = en->shot.strength;
@@ -387,14 +359,12 @@ static void enemy_update_shot_search(Enemy *en, World *w)
             cand_strength = en->weapon->max_speed;
         float cand_dist = simulate_projectile_min_dist(w, origin, player_pos, cand_angle, cand_strength, ENEMY_SHOT_HIT_RADIUS);
         en->shot.search_done++;
-        if (cand_dist < en->shot.best_dist)
-        {
+        if (cand_dist < en->shot.best_dist) {
             en->shot.best_dist = cand_dist;
             en->shot.angle = cand_angle;
             en->shot.strength = cand_strength;
             en->shot.improvements++;
-            if (cand_dist <= ENEMY_SHOT_HIT_RADIUS)
-            {
+            if (cand_dist <= ENEMY_SHOT_HIT_RADIUS) {
                 en->shot.ready = true;
                 /* keep candidate in shot cache; do not queue firing here. The
                  * decision to fire (and thus queue aiming) happens in
@@ -410,8 +380,7 @@ static void enemy_update_shot_search(Enemy *en, World *w)
  * The provided points are stored in the local polygon array; the world-space
  * polygon will be computed later during collision preparation.
  */
-static void enemy_set_polygon(Enemy *e, const Vec2 *pts, int count)
-{
+static void enemy_set_polygon(Enemy *e, const Vec2 *pts, int count) {
     if (!e || !pts || count <= 0)
         return;
     if (count > 30)
@@ -428,8 +397,7 @@ static void enemy_set_polygon(Enemy *e, const Vec2 *pts, int count)
  *
  * Populates runtime fields using the per-type data in `ENEMY_DEFS`.
  */
-static bool enemy_init_from_def(Enemy *e, EnemyType t)
-{
+static bool enemy_init_from_def(Enemy *e, EnemyType t) {
     if (!e)
         return false;
     if ((int)t < 0 || t >= ENEMY_TYPE_COUNT)
@@ -440,8 +408,7 @@ static bool enemy_init_from_def(Enemy *e, EnemyType t)
     e->move_speed = d->move_speed;
     e->shoot_speed = d->shoot_speed;
     e->can_fight = d->can_fight;
-    if (!e->weapon)
-    {
+    if (!e->weapon) {
         e->weapon = weapon_create_default();
         e->weapon->projectile_variant = 3;
     }
@@ -481,8 +448,8 @@ static bool enemy_init_from_def(Enemy *e, EnemyType t)
 }
 /* individual enemy_create_* functions removed; initialization is table-driven via ENEMY_DEFS and enemy_init_from_def */
 
-Enemy *enemy_create(World *world, EnemyType type, float x, float y, int shooter_index, char difficulty)
-{
+Enemy *enemy_create(World *world, EnemyType type, float x, float y, int shooter_index, char difficulty) {
+
     Enemy *e = calloc(1, sizeof(Enemy));
     if (!e)
         return NULL;
@@ -505,28 +472,24 @@ Enemy *enemy_create(World *world, EnemyType type, float x, float y, int shooter_
     e->e.collider.shape = COLLIDER_SHAPE_CIRCLE;
     e->ai.difficulty = difficulty;
     /* initialize from table-driven defs */
-    if (!enemy_init_from_def(e, type))
-    {
+    if (!enemy_init_from_def(e, type)) {
         enemy_destroy(e);
         return NULL;
     }
     return e;
 }
-void enemy_destroy(Enemy *en)
-{
+void enemy_destroy(Enemy *en) {
     if (!en)
         return;
     if (en->weapon)
         weapon_destroy(en->weapon);
     free(en);
 }
-void enemy_ai_update(Enemy *en, struct World *w, float dt)
-{
+void enemy_ai_update(Enemy *en, struct World *w, float dt) {
     if (!en || !w)
         return;
     if (!en->can_fight || !en->weapon)
         return;
-    // incremental shot-search runs each update to progressively find a good trajectory
     enemy_update_shot_search(en, w);
     // Simple decision: roll per-update chance
     // difficulty influences fire probability (0..255) -> direct proportional
@@ -535,13 +498,11 @@ void enemy_ai_update(Enemy *en, struct World *w, float dt)
     if (effective_chance > 1.f)
         effective_chance = 1.f;
     float roll = rng_rangef(&w->rng, 0.f, 1.f);
-    if (roll < effective_chance)
-    {
+    if (roll < effective_chance) {
         enemy_try_shoot(en, w);
     }
 }
-bool enemy_try_shoot(Enemy *en, struct World *w)
-{
+bool enemy_try_shoot(Enemy *en, struct World *w) {
     if (!en || !w || !en->weapon)
         return false;
     // cooldown check

@@ -14,11 +14,11 @@ typedef struct OverlayEndgameState {
     unsigned int rating[3];
 } OverlayEndgameState;
 
-void overlay_endgame_enter(Scene* s);
-void overlay_endgame_leave(Scene* s);
-void overlay_endgame_handle_input(Scene* s, const struct InputState* in);
-void overlay_endgame_update(Scene* s, float dt);
-void overlay_endgame_render(Scene* s, struct Renderer* r);
+void overlay_endgame_enter(Scene *s);
+void overlay_endgame_leave(Scene *s);
+void overlay_endgame_handle_input(Scene *s, const struct InputState *in);
+void overlay_endgame_update(Scene *s, float dt);
+void overlay_endgame_render(Scene *s, struct Renderer *r);
 /* Setter to provide final stats to the overlay before pushing it (quickplay/campaign) */
 void overlay_endgame_set_stats(int kills, int points);
 /* Campaign-only: provide whether all goals were met and three rating thresholds

@@ -2,8 +2,7 @@
 #include <stdbool.h>
 #include <SDL2/SDL.h>
 
-typedef struct InputState
-{
+typedef struct InputState {
     bool move_up, move_down, move_left, move_right; // WASD
     bool speed_up, speed_down; // Arrow Up/Down adjust projectile speed
     bool turn_left, turn_right; // Arrow Left/Right rotation

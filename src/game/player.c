@@ -4,14 +4,32 @@
 #include "projectile.h"
 // Local constant for PI to avoid relying on platform-specific M_PI macro
 static const float PI_F = 3.14159265358979323846f;
+#include "../core/log.h"
 #include "../services/renderer.h"
 #include "../services/services.h"
 #include "../services/texture_manager.h"
 #include "world.h" // for world_fire_projectile
 #include "weapon.h"
+#include "entity_helpers.h"
 
-static void player_trigger_death_effect(Player *p)
-{
+// Forward declaration
+static void player_trigger_death_effect(Player *p);
+
+static void player_apply_damage(Player *p, int damage) {
+
+    if (!p || !p->alive)
+        return;
+
+    p->health -= damage;
+    if (p->health <= 0) {
+        p->alive = false;
+        player_trigger_death_effect(p);
+
+}
+}
+
+static void player_trigger_death_effect(Player *p) {
+
     if (!p || p->death_explosion_triggered)
         return;
     if (!p->world)
@@ -21,49 +39,44 @@ static void player_trigger_death_effect(Player *p)
         return;
     int types = texman_explosion_type_count(svc->texman);
     int type = 0;
-    if (types > 0)
-    {
+    if (types > 0) {
         if (types >= 3)
             type = 2;
         else
             type = types - 1;
-    }
+
+}
     float scale = 1.4f;
     world_add_explosion(p->world, type, p->e.pos.x, p->e.pos.y, scale);
     p->death_explosion_triggered = true;
 }
 
-static void player_render(Entity *e, struct Renderer *r)
-{
+static void player_render(Entity *e, struct Renderer *r) {
+
     Player *p = (Player *)e;
     if (!p || !p->alive)
         return;
-    SDL_FRect dst = {p->e.pos.x - p->e.size.x * 0.5f, p->e.pos.y - p->e.size.y * 0.5f, p->e.size.x, p->e.size.y};
+    SDL_FRect dst = {p->e.pos.x - p->e.size.x * 0.5f, p->e.pos.y - p->e.size.y * 0.5f, p->e.size.x, p->e.size.y
+
+};
     float angle_deg = (p->e.angle + p->e.angle_offset) * (180.0f / PI_F);
     renderer_draw_texture(r, p->e.texture, NULL, &dst, angle_deg);
 }
-static void player_update(Entity *e, float dt)
-{
+static void player_update(Entity *e, float dt) {
     Player *p = (Player *)e;
     if (!p)
         return;
-    if (!p->alive)
-    {
+    if (!p->alive) {
         player_trigger_death_effect(p);
         return;
-    }
+}
     // Track original position to detect movement for polygon dirty flag
     float oldx = p->e.pos.x;
     float oldy = p->e.pos.y;
     // reset per-frame boost damage flag
     p->boost_damage_flag = 0;
     // energy regeneration (moved from weapon)
-    if (p->energy_regen_rate > 0.f)
-    {
-        p->energy += p->energy_regen_rate * dt;
-        if (p->energy > (float)p->energy_max)
-            p->energy = (float)p->energy_max;
-    }
+    entity_regenerate_energy(&p->energy, p->energy_regen_rate, p->energy_max, dt);
 #ifdef PLATFORM_PC
     // movement (WASD) for Debug
     float speed = 120.0f * dt;
@@ -77,8 +90,7 @@ static void player_update(Entity *e, float dt)
         p->e.pos.y += speed;
 #endif
     // adjust projectile speed via step events (auto-repeat)
-    if (p->weapon)
-    {
+    if (p->weapon) {
         float base_step_small = 5.f;   // units per step with small modifier
         float base_step_normal = 10.f; // default
         float base_step_large = 30.f;  // with large modifier
@@ -94,8 +106,7 @@ static void player_update(Entity *e, float dt)
     }
 
     // rotation: if analog stick active use its angle, else apply step events
-    if (p->input.stick_active)
-    {
+    if (p->input.stick_active) {
         // Adjust stick angle by +90deg so that right on stick yields facing right on screen.
         // (Observed: previous mapping made right=up, meaning we were effectively -90deg off.)
         float adjusted = p->input.stick_angle + (PI_F * 0.5f);
@@ -108,61 +119,51 @@ static void player_update(Entity *e, float dt)
         p->e.angle = target;
         p->e.collider.poly_world_dirty = 1; // mark world poly dirty
     }
-    else
-    {
+    else {
         float base_step_small = 0.01f;
         float base_step_normal = 0.02f;
         float base_step_large = 0.05f;
         float step = p->input.mod_large ? base_step_large : (p->input.mod_small ? base_step_small : base_step_normal);
-        if (p->input.turn_left_step)
-        {
+        if (p->input.turn_left_step) {
             p->e.angle -= step;
             p->e.collider.poly_world_dirty = 1; // mark world poly dirty
         }
-        if (p->input.turn_right_step)
-        {
+        if (p->input.turn_right_step) {
             p->e.angle += step;
             p->e.collider.poly_world_dirty = 1; // mark world poly dirty
         }
     }
     // Boost input now comes from centralized InputState
     int raw_boost = p->input.boost ? 1 : 0;
-    static int prev_boost = 0;
-    int edge = raw_boost && !prev_boost;
+    int edge = raw_boost && !p->prev_boost;
     // Neue Semantik:
     // boost_cost: voller Abzug beim Initial-Press (edge) + gleicher Wert pro Sekunde während Halten.
     // Wenn beim Edge nicht genug Energie für boost_cost vorhanden: kein Boost (auch kein Halten-Effekt).
     // Während Halten nur weiter beschleunigen/verstetigen solange genug Energie für die aktuelle Frame-Drain vorhanden ist.
     float dx = cosf(p->e.angle);
     float dy = sinf(p->e.angle);
-    static int boosting_session = 0; // 0 = kein aktiver Boost-Hold, 1 = aktiv seit gültigem Edge
-    if (edge)
-    {
-        if (p->energy >= (0.5 * p->energy_max))
-        {
+    if (edge) {
+        if (p->energy >= (0.5 * p->energy_max)) {
             if (p->energy < 0.f)
                 p->energy = 0.f;
-            boosting_session = 1;
+            p->boosting_session = 1;
             // optional kleiner Sofort-Impuls (10% Zielgeschwindigkeit)
             float tap_speed = p->boost_strength * 0.10f;
             p->e.vel.x += dx * tap_speed;
             p->e.vel.y += dy * tap_speed;
-        }
-        else
-        {
-            boosting_session = 0; // kein Boost starten
+    }
+        else {
+            p->boosting_session = 0; // kein Boost starten
         }
     }
     // Beenden der Session wenn Taste losgelassen
     if (!raw_boost)
-        boosting_session = 0;
+        p->boosting_session = 0;
     // Laufender Boost: nur wenn Session aktiv und noch Energie vorhanden
-    if (boosting_session && raw_boost)
-    {
+    if (p->boosting_session && raw_boost) {
         // Per-Frame Drain berechnen
         float drain = (float)p->boost_cost * dt; // cost per second -> dt Anteil
-        if (p->energy >= drain && drain > 0.f)
-        {
+        if (p->energy >= drain && drain > 0.f) {
             p->energy -= drain;
             if (p->energy < 0.f)
                 p->energy = 0.f;
@@ -175,25 +176,22 @@ static void player_update(Entity *e, float dt)
                 target = 0.f;
             // sanfte Annäherung (Beschleunigung proportional zum Ziel)
             float accel = target * 4.f; // ~0.3s auf 95%
-            if (proj < target)
-            {
+            if (proj < target) {
                 float add = accel * dt;
                 if (proj + add > target)
                     add = target - proj;
-                if (add > 0.f)
-                {
+                if (add > 0.f) {
                     p->e.vel.x += dx * add;
                     p->e.vel.y += dy * add;
-                }
+    }
             }
         }
-        else
-        {
+        else {
             // Nicht genug Energie für weiteren Frame -> Boost endet sofort
-            boosting_session = 0;
+            p->boosting_session = 0;
         }
     }
-    prev_boost = raw_boost;
+    p->prev_boost = raw_boost;
 
     // Apply velocity to position
     p->e.pos.x += p->e.vel.x * dt;
@@ -214,14 +212,14 @@ static void player_update(Entity *e, float dt)
     if (p->world && p->input.fire)
         player_shoot(p, p->world, -1.f);
 }
-static void player_destroy_entity(Entity *e) { player_destroy((Player *)e); }
-static void player_on_hit_entity(Entity *e, Entity *hitter)
-{
+static void player_destroy_entity(Entity *e) {
+    player_destroy((Player *)e);
+}
+static void player_on_hit_entity(Entity *e, Entity *hitter) {
     if (!e || e->type != ENT_PLAYER)
         return;
     Player *p = (Player *)e;
-    if (hitter && hitter->type == ENT_PROJECTILE)
-    {
+    if (hitter && hitter->type == ENT_PROJECTILE) {
         struct Projectile *pr = (struct Projectile *)hitter; // forward declared via projectile.h through inclusion chain
         int dmg = 1;
         if (pr)
@@ -229,23 +227,16 @@ static void player_on_hit_entity(Entity *e, Entity *hitter)
         // Friendly fire filter: ignore projectiles fired by players
         if (pr && pr->owner_kind == ENT_PLAYER)
             return; // do not deactivate friendly projectile
-        p->health -= dmg;
-        if (p->health <= 0)
-        {
-            p->alive = false;
-            player_trigger_death_effect(p);
-        }
+        player_apply_damage(p, dmg);
         if (pr)
             pr->active = false; // deactivate projectile only on valid hit
         /* Add a small explosion effect for player hits. Use explosion type 1
          * if available; fall back to 0 if the texture manager provides fewer
          * types. Position at the projectile hit while player still alive,
          * otherwise at the player's position. Scale mirrors enemy logic. */
-        if (p->world && p->alive)
-        {
+        if (p->world && p->alive) {
             Services *svc = services_get();
-            if (svc && svc->texman)
-            {
+            if (svc && svc->texman) {
                 int types = texman_explosion_type_count(svc->texman);
                 int type = 1;
                 if (types <= 1)
@@ -256,19 +247,20 @@ static void player_on_hit_entity(Entity *e, Entity *hitter)
                 float y = hitter ? hitter->pos.y : p->e.pos.y;
                 float scale = 0.5f;
                 world_add_explosion(p->world, type, x, y, scale);
-            }
+}
         }
     }
 }
 
-static Entity *player_create_entity(void *params)
-{
+static Entity *player_create_entity(void *params) {
+
     SDL_Texture *tex = (SDL_Texture *)params;
     return (Entity *)player_create(tex);
+
 }
 
-static void player_on_collide_entity(Entity *self, Entity *other)
-{
+static void player_on_collide_entity(Entity *self, Entity *other) {
+
     if (!self || self->type != ENT_PLAYER)
         return;
     Player *p = (Player *)self;
@@ -276,8 +268,7 @@ static void player_on_collide_entity(Entity *self, Entity *other)
         return;
     if (!other)
         return;
-    if (other->type == ENT_PLANET || other->type == ENT_ENEMY)
-    {
+    if (other->type == ENT_PLANET || other->type == ENT_ENEMY) {
         float vx = p->e.vel.x;
         float vy = p->e.vel.y;
         float speed = sqrtf(vx * vx + vy * vy);
@@ -286,18 +277,16 @@ static void player_on_collide_entity(Entity *self, Entity *other)
         float dy = p->e.pos.y - other->pos.y;
         float dist = sqrtf(dx * dx + dy * dy);
         float nx, ny;
-        if (dist > 1e-4f)
-        {
+        if (dist > 1e-4f) {
             nx = dx / dist;
             ny = dy / dist;
-        }
-        else if (speed > 1e-4f)
-        {
+
+}
+        else if (speed > 1e-4f) {
             nx = vx / speed;
             ny = vy / speed;
         }
-        else
-        {
+        else {
             nx = 1.f;
             ny = 0.f;
         }
@@ -305,8 +294,7 @@ static void player_on_collide_entity(Entity *self, Entity *other)
         float pr = p->e.collider.radius;
         float orad = other->collider.radius > 0.f ? other->collider.radius : fmaxf(other->size.x, other->size.y) * 0.5f;
         float penetration = (pr + orad) - dist; // can be negative (no overlap in circle approximation)
-        if (penetration > 0.f)
-        {
+        if (penetration > 0.f) {
             // Only push out along n; limit push to avoid overshoot
             float push = penetration < 8.f ? penetration : 8.f;
             // If velocity points outward already, reduce push (prevents 'stick')
@@ -317,27 +305,20 @@ static void player_on_collide_entity(Entity *self, Entity *other)
             p->e.pos.y += ny * push;
             p->e.collider.poly_world_dirty = 1; // mark moved
             // Velocity response: only modify inward component
-            if (vdotn < 0.f)
-            {
+            if (vdotn < 0.f) {
                 float restitution = 0.25f;                  // damped bounce
                 float remove = (1.f + restitution) * vdotn; // vdotn negative
                 p->e.vel.x -= nx * remove;
                 p->e.vel.y -= ny * remove;
-            }
+        }
             // Damage only if inward impact speed large enough (use inward component NOT total speed)
             const float impact_threshold = 60.f; // tune: lower so damage actually occurs
             float inward_speed = -vdotn;         // positive if moving into object
-            if (p->boost_damage_flag == 0 && inward_speed > impact_threshold)
-            {
+            if (p->boost_damage_flag == 0 && inward_speed > impact_threshold) {
                 int dmg = (int)(inward_speed * 0.02f) + 1;
                 if (dmg < 1)
                     dmg = 1;
-                p->health -= dmg;
-                if (p->health <= 0)
-                {
-                    p->alive = false;
-                    player_trigger_death_effect(p);
-                }
+                player_apply_damage(p, dmg);
                 p->boost_damage_flag = 1; // only set when damage applied
             }
         }
@@ -345,12 +326,17 @@ static void player_on_collide_entity(Entity *self, Entity *other)
 }
 static const EntityVTable PLAYER_VT = {player_create_entity, player_destroy_entity, player_update, player_render, player_on_hit_entity, player_on_collide_entity};
 
-Player *player_create(SDL_Texture *tex)
-{
+Player *player_create(SDL_Texture *tex) {
+
     Player *p = calloc(1, sizeof(Player));
+    if (!p) {
+        LOG_ERROR("player", "Failed to allocate Player");
+        return NULL;
+
+}
     p->e.texture = tex;
     p->alive = true;
-    p->e.size = (Vec2){34, 35};
+    p->e.size = (Vec2){PLAYER_WIDTH, PLAYER_HEIGHT};
     p->e.vt = &PLAYER_VT;
     p->e.is_dynamic = true;
     p->e.collider.radius = sqrtf(p->e.size.x * p->e.size.x + p->e.size.y * p->e.size.y) * 0.5f + 1;
@@ -359,8 +345,7 @@ Player *player_create(SDL_Texture *tex)
     int poly_total = (int)(sizeof(poly_pts) / sizeof(poly_pts[0]));
     p->e.collider.poly_count = (poly_total > 30) ? 30 : poly_total;
     // Lokale Polygonpunkte (Pixelkoordinaten), dienen für präzisere Kollision.
-    for (int i = 0; i < p->e.collider.poly_count; i++)
-    {
+    for (int i = 0; i < p->e.collider.poly_count; i++) {
         p->e.collider.poly_local[i] = poly_pts[i];
     }
     p->e.collider.poly_world_dirty = 1; // will build world copy
@@ -384,25 +369,25 @@ Player *player_create(SDL_Texture *tex)
     p->boost_cost = 400;
     p->boost_damage_flag = 0;
     p->death_explosion_triggered = false;
+    // Initialize boost state tracking fields (moved from static variables)
+    p->prev_boost = 0;
+    p->boosting_session = 0;
     return p;
 }
-void player_destroy(Player *p)
-{
+void player_destroy(Player *p) {
     if (!p)
         return;
     if (p->weapon)
         weapon_destroy(p->weapon);
     free(p);
 }
-void player_fly(Player *p, const InputState *in, float dt)
-{
+void player_fly(Player *p, const InputState *in, float dt) {
     // deprecated: logic moved to player_update
     (void)p;
     (void)in;
     (void)dt;
 }
-bool player_shoot(Player *p, struct World *w, float strength)
-{
+bool player_shoot(Player *p, struct World *w, float strength) {
     if (!p || !w)
         return false;
     if (p->shooter_index < 0)
@@ -418,19 +403,21 @@ bool player_shoot(Player *p, struct World *w, float strength)
     if (strength <= 0.f)
         strength = p->current_shot_speed;
     bool ok = world_fire_projectile(w, p->shooter_index, (Entity *)p, p->e.angle, strength);
-    if (ok)
-    {
+    if (ok) {
         weapon_on_fired(p->weapon, w->time); // only updates last_fire_time now
         p->energy -= (float)p->weapon->energy_cost;
         if (p->energy < 0.f)
             p->energy = 0.f;
-    }
+}
     return ok;
 }
-void player_on_kill(Player *p) { (void)p; }
-OBB player_collider(const Player *p) { return (OBB){{p->e.pos.x, p->e.pos.y}, {p->e.size.x, p->e.size.y}, p->e.angle}; }
-void player_set_input(Player *p, const InputState *in)
-{
+void player_on_kill(Player *p) {
+    (void)p;
+}
+OBB player_collider(const Player *p) {
+    return (OBB){{p->e.pos.x, p->e.pos.y}, {p->e.size.x, p->e.size.y}, p->e.angle};
+}
+void player_set_input(Player *p, const InputState *in) {
     if (p && in)
         p->input = *in;
 }

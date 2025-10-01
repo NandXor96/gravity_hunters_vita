@@ -40,19 +40,23 @@ typedef struct {
 #pragma pack(pop)
 
 static const char *spawn_kind_name(uint8_t k) {
-    switch(k) {
+
+    switch (k) {
         case 0: return "on_start";
         case 1: return "on_timer";
         case 2: return "on_death";
     default: return "unknown";
-    }
+
+}
 }
 
 int level_load(const char *filename, GameLevel *out, char *err, size_t errlen) {
+
     if (!filename || !out) {
         if (err && errlen) snprintf(err, errlen, "invalid args");
         return 1;
-    }
+
+}
 
     // Build path under assets/levels if filename is not absolute
     char path[512];
@@ -91,12 +95,15 @@ int level_load(const char *filename, GameLevel *out, char *err, size_t errlen) {
     // read start_text
     size_t cap = 256;
     char *sbuf = (char*)malloc(cap);
-    if (!sbuf) { if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 5; }
+    if (!sbuf) {
+        if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 5;
+    }
     size_t si = 0; int c;
     while ((c = fgetc(f)) != EOF && c != '\0') {
         if (si + 1 >= cap) {
             cap *= 2; char *n = (char*)realloc(sbuf, cap);
-            if (!n) { free(sbuf); if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 6; }
+            if (!n) { free(sbuf); if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 6;
+        }
             sbuf = n;
         }
         sbuf[si++] = (char)c;
@@ -108,10 +115,12 @@ int level_load(const char *filename, GameLevel *out, char *err, size_t errlen) {
     out->planets = NULL; out->enemies = NULL;
     if (out->planets_count) {
         out->planets = (LevelPlanet*)malloc(sizeof(LevelPlanet) * out->planets_count);
-        if (!out->planets) { if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 7; }
+        if (!out->planets) { if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 7;
+    }
         for (uint32_t i = 0; i < out->planets_count; ++i) {
             PlanetEntry pe;
-            if (fread(&pe, sizeof(pe), 1, f) != 1) { if (err && errlen) snprintf(err, errlen, "failed to read planet"); fclose(f); return 8; }
+            if (fread(&pe, sizeof(pe), 1, f) != 1) { if (err && errlen) snprintf(err, errlen, "failed to read planet"); fclose(f); return 8;
+        }
             out->planets[i].type = pe.type; out->planets[i].size = pe.size; out->planets[i].pos_x = pe.pos_x; out->planets[i].pos_y = pe.pos_y;
         }
     }
@@ -119,10 +128,12 @@ int level_load(const char *filename, GameLevel *out, char *err, size_t errlen) {
     // read enemies
     if (out->enemies_count) {
         out->enemies = (LevelEnemy*)malloc(sizeof(LevelEnemy) * out->enemies_count);
-        if (!out->enemies) { if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 9; }
+        if (!out->enemies) { if (err && errlen) snprintf(err, errlen, "alloc failed"); fclose(f); return 9;
+    }
         for (uint32_t i = 0; i < out->enemies_count; ++i) {
             EnemyEntry ee;
-            if (fread(&ee, sizeof(ee), 1, f) != 1) { if (err && errlen) snprintf(err, errlen, "failed to read enemy"); fclose(f); return 10; }
+            if (fread(&ee, sizeof(ee), 1, f) != 1) { if (err && errlen) snprintf(err, errlen, "failed to read enemy"); fclose(f); return 10;
+        }
             out->enemies[i].id = ee.id; out->enemies[i].type = ee.type;
             out->enemies[i].pos_x = ee.pos_x; out->enemies[i].pos_y = ee.pos_y;
             out->enemies[i].difficulty = ee.difficulty; out->enemies[i].health = ee.health;
@@ -135,29 +146,12 @@ int level_load(const char *filename, GameLevel *out, char *err, size_t errlen) {
 }
 
 void level_free(GameLevel *lvl) {
+
     if (!lvl) return;
     if (lvl->start_text) free(lvl->start_text);
     if (lvl->planets) free(lvl->planets);
     if (lvl->enemies) free(lvl->enemies);
     lvl->start_text = NULL; lvl->planets = NULL; lvl->enemies = NULL;
+
 }
 
-void level_print(const GameLevel *lvl) {
-    if (!lvl) return;
-    printf("version=%u time_limit=%u\n", lvl->version, lvl->time_limit);
-    printf("goal: %u/%u\n", (unsigned)lvl->goal_kills, (unsigned)lvl->goal_deaths);
-    printf("rating: %u, %u, %u\n", lvl->rating[0], lvl->rating[1], lvl->rating[2]);
-    printf("player_pos=(%.6f,%.6f) health=%u\n", lvl->player_pos_x, lvl->player_pos_y, lvl->player_health);
-    printf("planets_count=%u enemies_count=%u\n", lvl->planets_count, lvl->enemies_count);
-    printf("start_text: '%s'\n", lvl->start_text ? lvl->start_text : "");
-    for (uint32_t i = 0; i < lvl->planets_count; ++i) {
-        LevelPlanet *p = &lvl->planets[i];
-        printf("planet[%u]: type=%u size=%.6f pos=(%.6f,%.6f)\n", i, (unsigned)p->type, p->size, p->pos_x, p->pos_y);
-    }
-    for (uint32_t i = 0; i < lvl->enemies_count; ++i) {
-        LevelEnemy *e = &lvl->enemies[i];
-        printf("enemy[%u]: id=%u type=%u pos=(%.6f,%.6f) diff=%u health=%u spawn=%u arg=%u delay=%u\n",
-               i, (unsigned)e->id, (unsigned)e->type, e->pos_x, e->pos_y, (unsigned)e->difficulty, e->health,
-               (unsigned)e->spawn_kind, (unsigned)e->spawn_arg, (unsigned)e->spawn_delay);
-    }
-}

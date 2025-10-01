@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "../core/log.h"
 #include "../services/services.h"
 #include "../services/renderer.h"
 #include "../services/texture_manager.h"
@@ -12,27 +13,28 @@
 #include "../app/app.h"
 #include "scene_campaign.h"
 #include "overlay_campaign_details.h"
-#include "../ui/ui_prompts.h"
+#include "../game/ui_prompts.h"
 
 #define CAMPAIGN_MENU_VISIBLE_ROWS 6
 
 static SceneCampaignMenuState *s_active_state = NULL;
 static int s_focus_last_unlocked_request = 0;
 
-static void scene_campaign_menu_draw_caret(Renderer *r, float cx, float y, double angle_deg)
-{
+static void scene_campaign_menu_draw_caret(Renderer *r, float cx, float y, double angle_deg) {
+
     if (!r || !r->font)
         return;
 
     const char *caret = "^";
-    SDL_Color color = {255, 255, 255, 255};
+    SDL_Color color = {255, 255, 255, 255
+
+};
     SDL_Surface *surface = TTF_RenderText_Blended(r->font, caret, color);
     if (!surface)
         return;
 
     SDL_Texture *texture = SDL_CreateTextureFromSurface(r->sdl, surface);
-    if (!texture)
-    {
+    if (!texture) {
         SDL_FreeSurface(surface);
         return;
     }
@@ -50,17 +52,17 @@ static void scene_campaign_menu_draw_caret(Renderer *r, float cx, float y, doubl
     SDL_FreeSurface(surface);
 }
 
-static void scene_campaign_menu_ensure_visible(SceneCampaignMenuState *st)
-{
+static void scene_campaign_menu_ensure_visible(SceneCampaignMenuState *st) {
+
     if (!st)
         return;
 
     int count = st->catalog.count;
-    if (count <= 0)
-    {
+    if (count <= 0) {
         st->first_visible_index = 0;
         return;
-    }
+
+}
 
     if (st->selected_index < 0)
         st->selected_index = 0;
@@ -73,29 +75,29 @@ static void scene_campaign_menu_ensure_visible(SceneCampaignMenuState *st)
     if (st->first_visible_index < 0)
         st->first_visible_index = 0;
 
-    if (st->selected_index < st->first_visible_index)
-    {
+    if (st->selected_index < st->first_visible_index) {
+
         st->first_visible_index = st->selected_index;
+
     }
-    else if (st->selected_index >= st->first_visible_index + CAMPAIGN_MENU_VISIBLE_ROWS)
-    {
+    else if (st->selected_index >= st->first_visible_index + CAMPAIGN_MENU_VISIBLE_ROWS) {
         st->first_visible_index = st->selected_index - CAMPAIGN_MENU_VISIBLE_ROWS + 1;
         if (st->first_visible_index > max_start)
             st->first_visible_index = max_start;
     }
 }
 
-static void scene_campaign_menu_apply_focus_last_unlocked(SceneCampaignMenuState *st)
-{
+static void scene_campaign_menu_apply_focus_last_unlocked(SceneCampaignMenuState *st) {
+
     if (!st || !s_focus_last_unlocked_request)
         return;
 
     int last_unlocked = -1;
-    for (int i = 0; i < st->catalog.count; ++i)
-    {
+    for (int i = 0; i < st->catalog.count; ++i) {
         if (st->catalog.items[i].unlocked)
             last_unlocked = i;
-    }
+
+}
 
     if (last_unlocked >= 0)
         st->selected_index = last_unlocked;
@@ -104,23 +106,22 @@ static void scene_campaign_menu_apply_focus_last_unlocked(SceneCampaignMenuState
     s_focus_last_unlocked_request = 0;
 }
 
-static void scene_campaign_menu_refresh(SceneCampaignMenuState *st)
-{
+static void scene_campaign_menu_refresh(SceneCampaignMenuState *st) {
+
     if (!st)
         return;
 
-    if (campaign_levels_scan(&st->descriptors, NULL) != 0)
-    {
-        fprintf(stderr, "[scene_campaign_menu] Failed to scan campaign levels\n");
+    if (campaign_levels_scan(&st->descriptors, NULL) != 0) {
+        LOG_ERROR("scene_campaign_menu", "Failed to scan campaign levels");
         campaign_level_catalog_free(&st->catalog);
         st->selected_index = 0;
         st->first_visible_index = 0;
         return;
-    }
 
-    if (campaign_level_catalog_from_descriptors(&st->descriptors, &st->catalog) != 0)
-    {
-        fprintf(stderr, "[scene_campaign_menu] Failed to build campaign catalog\n");
+}
+
+    if (campaign_level_catalog_from_descriptors(&st->descriptors, &st->catalog) != 0) {
+        LOG_ERROR("scene_campaign_menu", "Failed to build campaign catalog");
         campaign_level_catalog_free(&st->catalog);
         st->selected_index = 0;
         st->first_visible_index = 0;
@@ -136,11 +137,14 @@ static void scene_campaign_menu_refresh(SceneCampaignMenuState *st)
         scene_campaign_menu_ensure_visible(st);
 }
 
-void scene_campaign_menu_enter(Scene *s)
-{
+void scene_campaign_menu_enter(Scene *s) {
+
     SceneCampaignMenuState *st = calloc(1, sizeof(SceneCampaignMenuState));
-    if (!st)
+    if (!st) {
+        LOG_ERROR("scene_campaign_menu", "Failed to allocate scene state");
         return;
+
+}
     s->state = st;
     st->svc = app_services();
     st->selected_index = 0;
@@ -149,8 +153,8 @@ void scene_campaign_menu_enter(Scene *s)
     s_active_state = st;
 }
 
-void scene_campaign_menu_leave(Scene *s)
-{
+void scene_campaign_menu_leave(Scene *s) {
+
     SceneCampaignMenuState *st = (SceneCampaignMenuState *)s->state;
     if (!st)
         return;
@@ -159,17 +163,19 @@ void scene_campaign_menu_leave(Scene *s)
     campaign_level_catalog_free(&st->catalog);
     campaign_levels_free(&st->descriptors);
     free(st);
+
 }
 
-void scene_campaign_menu_focus_last_unlocked(void)
-{
+void scene_campaign_menu_focus_last_unlocked(void) {
+
     s_focus_last_unlocked_request = 1;
     if (s_active_state)
         scene_campaign_menu_apply_focus_last_unlocked(s_active_state);
+
 }
 
-void scene_campaign_menu_suppress_input(int frames)
-{
+void scene_campaign_menu_suppress_input(int frames) {
+
     if (!s_active_state)
         return;
     if (frames < 0)
@@ -180,23 +186,24 @@ void scene_campaign_menu_suppress_input(int frames)
     s_active_state->prev_move_down = 1;
     s_active_state->prev_confirm = 1;
     s_active_state->prev_back = 1;
+
 }
 
-void scene_campaign_menu_handle_input(Scene *s, const struct InputState *in)
-{
+void scene_campaign_menu_handle_input(Scene *s, const struct InputState *in) {
+
     SceneCampaignMenuState *st = (SceneCampaignMenuState *)s->state;
     if (!st || !in)
         return;
 
-    if (st->suppress_input_frames > 0)
-    {
+    if (st->suppress_input_frames > 0) {
         st->suppress_input_frames -= 1;
         st->prev_move_up = in->move_up ? 1 : 0;
         st->prev_move_down = in->move_down ? 1 : 0;
         st->prev_confirm = in->confirm ? 1 : 0;
         st->prev_back = in->back ? 1 : 0;
         return;
-    }
+
+}
 
     int up = in->move_up ? 1 : 0;
     int down = in->move_down ? 1 : 0;
@@ -206,27 +213,24 @@ void scene_campaign_menu_handle_input(Scene *s, const struct InputState *in)
     int up_pressed = (up && !st->prev_move_up) || in->speed_up_step;
     int down_pressed = (down && !st->prev_move_down) || in->speed_down_step;
 
-    if (st->catalog.count > 0)
-    {
-        if (up_pressed)
-        {
+    if (st->catalog.count > 0) {
+
+        if (up_pressed) {
             st->selected_index = (st->selected_index - 1 + st->catalog.count) % st->catalog.count;
             scene_campaign_menu_ensure_visible(st);
-        }
-        if (down_pressed)
-        {
+
+    }
+        if (down_pressed) {
             st->selected_index = (st->selected_index + 1) % st->catalog.count;
             scene_campaign_menu_ensure_visible(st);
         }
     }
 
-    if (confirm && !st->prev_confirm)
-    {
-        if (st->catalog.count > 0)
-        {
+    if (confirm && !st->prev_confirm) {
+
+        if (st->catalog.count > 0) {
             CampaignLevelInfo *info = &st->catalog.items[st->selected_index];
-            if (info->unlocked)
-            {
+            if (info->unlocked) {
                 overlay_campaign_details_prepare(info->filename);
                 if (app_push_overlay(SCENE_OVERLAY_CAMPAIGN_DETAILS))
                     return;
@@ -234,14 +238,16 @@ void scene_campaign_menu_handle_input(Scene *s, const struct InputState *in)
                 scene_campaign_set_level(info->filename);
                 app_set_scene(SCENE_CAMPAIGN);
                 return;
-            }
+
+    }
         }
     }
 
-    if (back && !st->prev_back)
-    {
+    if (back && !st->prev_back) {
+
         app_set_scene(SCENE_MENU);
         return;
+
     }
 
     st->prev_move_up = up;
@@ -250,14 +256,15 @@ void scene_campaign_menu_handle_input(Scene *s, const struct InputState *in)
     st->prev_back = back;
 }
 
-void scene_campaign_menu_update(Scene *s, float dt)
-{
+void scene_campaign_menu_update(Scene *s, float dt) {
+
     (void)s;
     (void)dt;
+
 }
 
-void scene_campaign_menu_render(Scene *s, struct Renderer *r)
-{
+void scene_campaign_menu_render(Scene *s, struct Renderer *r) {
+
     SceneCampaignMenuState *st = (SceneCampaignMenuState *)s->state;
     if (!st)
         return;
@@ -271,7 +278,9 @@ void scene_campaign_menu_render(Scene *s, struct Renderer *r)
 
     int cx = svc->display_w / 2;
     int title_y = 60;
-    renderer_draw_text_centered(r, "CAMPAIGN", (float)cx, (float)title_y, (TextStyle){0});
+    renderer_draw_text_centered(r, "CAMPAIGN", (float)cx, (float)title_y, (TextStyle){0
+
+});
 
     int menu_y = 140;
     int spacing = 56;
@@ -285,9 +294,11 @@ void scene_campaign_menu_render(Scene *s, struct Renderer *r)
     const float star_spacing = 6.f;
     const float star_margin_right = 16.f;
 
-    if (st->catalog.count == 0)
-    {
-        renderer_draw_text_centered(r, "No campaign levels found", (float)cx, (float)(menu_y + 20), (TextStyle){0});
+    if (st->catalog.count == 0) {
+
+        renderer_draw_text_centered(r, "No campaign levels found", (float)cx, (float)(menu_y + 20), (TextStyle){0
+
+    });
         if (!app_has_overlay())
             ui_draw_ok_back_prompts(r, svc, true);
         return;
@@ -316,25 +327,29 @@ void scene_campaign_menu_render(Scene *s, struct Renderer *r)
 
     float last_box_bottom = (float)(menu_y + (visible_rows - 1) * spacing + box_h);
 
-    for (int row = 0, i = start_index; i < end_index; ++i, ++row)
-    {
+    for (int row = 0, i = start_index; i < end_index; ++i, ++row) {
+
         CampaignLevelInfo *info = &st->catalog.items[i];
         float by = (float)(menu_y + row * spacing);
         float bx = (float)(cx - box_w / 2);
-        SDL_FRect box = {bx, by, (float)box_w, (float)box_h};
+        SDL_FRect box = {bx, by, (float)box_w, (float)box_h
+
+    };
         SDL_Color base_color = info->unlocked ? (SDL_Color){34, 34, 34, 255} : (SDL_Color){24, 24, 24, 255};
         renderer_draw_filled_rect(r, box, base_color);
 
         int selected = (i == st->selected_index);
-        if (selected)
-        {
-            renderer_draw_rect_outline(r, box, (SDL_Color){255, 200, 80, 255}, 2);
+        if (selected) {
+            renderer_draw_rect_outline(r, box, (SDL_Color){255, 200, 80, 255
+        }, 2);
         }
 
         float label_x = bx + 16.f;
         float text_y = by + 10.f;
         const char *display = info->display_name[0] ? info->display_name : info->filename;
-        renderer_draw_text(r, display, label_x, text_y, (TextStyle){0});
+        renderer_draw_text(r, display, label_x, text_y, (TextStyle) {
+            0
+        });
 
         int earned = (int)info->stars_earned;
         if (earned < 0)
@@ -351,41 +366,43 @@ void scene_campaign_menu_render(Scene *s, struct Renderer *r)
         float star_x = bx + box_w - star_block_width - star_margin_right;
         float star_y = by + (float)box_h * 0.5f;
 
-        if (have_star_icons)
-        {
+        if (have_star_icons) {
+
             star_y -= star_size * 0.5f;
-            for (int s_idx = 0; s_idx < star_slots; ++s_idx)
-            {
+            for (int s_idx = 0; s_idx < star_slots; ++s_idx) {
                 const SDL_Rect *src = (s_idx < earned) ? &star_src_filled : &star_src_empty;
                 SDL_FRect dst = {
                     star_x + s_idx * (star_size + star_spacing),
                     star_y,
                     star_size,
                     star_size
-                };
+
+        };
                 renderer_draw_texture(r, icons_sheet, src, &dst, 0.f);
             }
         }
-        else
-        {
+        else {
             char fallback_buf[32];
             snprintf(fallback_buf, sizeof(fallback_buf), "Stars: %d", earned);
             SDL_Point stars_size = renderer_measure_text(r, fallback_buf, (TextStyle){0});
             star_x = bx + box_w - (float)stars_size.x - star_margin_right;
-            renderer_draw_text(r, fallback_buf, star_x, text_y, (TextStyle){0});
+            renderer_draw_text(r, fallback_buf, star_x, text_y, (TextStyle) {
+                0
+            });
             star_block_width = (float)stars_size.x;
         }
 
     }
 
-    if (end_index < st->catalog.count)
-    {
+    if (end_index < st->catalog.count) {
+
         float bottom_arrow_y;
         if (caret_height > 0)
             bottom_arrow_y = last_box_bottom + arrow_tip_gap - (float)caret_height;
         else
             bottom_arrow_y = (float)(menu_y + visible_rows * spacing + 8);
         scene_campaign_menu_draw_caret(r, (float)cx, bottom_arrow_y, 180.0);
+
     }
 
     if (!app_has_overlay())

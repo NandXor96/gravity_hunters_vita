@@ -46,11 +46,9 @@ const char *campaign_levels_default_root(void);
 // Scans the levels directory (or a custom root) for *.lvl files, sorts them
 // alphabetically, and populates the provided list structure. Existing contents
 // in the list are released before population.
-//
 // Parameters:
 //   list        - output container; must be non-null.
 //   levels_root - optional override path; when NULL the default root is used.
-//
 // Returns 0 on success, negative on failure (e.g., directory missing).
 int campaign_levels_scan(CampaignLevelList *list, const char *levels_root);
 

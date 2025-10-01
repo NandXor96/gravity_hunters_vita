@@ -6,8 +6,7 @@
 
 struct Services;
 
-typedef struct OverlayCampaignDetailsState
-{
+typedef struct OverlayCampaignDetailsState {
     struct Services *svc;
     char level_filename[CAMPAIGN_LEVEL_MAX_FILENAME];
     char *start_text;

@@ -20,21 +20,21 @@ typedef enum {
 
 typedef struct TextureManager TextureManager;
 
-TextureManager* texman_create(SDL_Renderer* sdl, const char* assets_root);
+TextureManager *texman_create(SDL_Renderer *sdl, const char* assets_root);
 bool 			texman_load_textures(TextureManager*, uint32_t seed);
 void            texman_destroy(TextureManager*);
-SDL_Texture*    texman_get(TextureManager*, TextureID id);
+SDL_Texture *texman_get(TextureManager*, TextureID id);
 SDL_Rect        texman_planet_src_rect(int idx);
 SDL_Rect        texman_sheet_src(TextureManager*, TextureID id, int index);
 
 /* Projectile sheet API */
-SDL_Texture* texman_projectiles_texture(TextureManager*);
+SDL_Texture *texman_projectiles_texture(TextureManager*);
 SDL_Rect     texman_projectile_src(TextureManager*, int variant_index);
 int          texman_projectile_variant_count(TextureManager*);
-bool         texman_projectile_variant_color(TextureManager*, int variant_index, Uint8* r, Uint8* g, Uint8* b);
+bool         texman_projectile_variant_color(TextureManager*, int variant_index, Uint8 *r, Uint8 *g, Uint8 *b);
 
 /* Explosions sheet (procedural) */
-SDL_Texture* texman_explosions_texture(TextureManager*);
+SDL_Texture *texman_explosions_texture(TextureManager*);
 int          texman_explosion_type_count(TextureManager*);
 int          texman_explosion_frames(TextureManager*);
 SDL_Rect     texman_explosion_src(TextureManager*, int explosion_type, int frame);

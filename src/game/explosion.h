@@ -13,6 +13,6 @@ typedef struct Explosion {
     int active;       /* active flag */
 } Explosion;
 
-Explosion* explosion_create(int type, float x, float y, float scale);
-void       explosion_destroy(Explosion* ex);
-void       explosion_spawn_at_planet_center(struct Planet* planet); /* convenience */
+Explosion *explosion_create(int type, float x, float y, float scale);
+void       explosion_destroy(Explosion *ex);
+void       explosion_spawn_at_planet_center(struct Planet *planet); /* convenience */

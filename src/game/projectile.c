@@ -9,27 +9,26 @@
 #include "../services/texture_manager.h"
 #include "player.h"
 #include "enemy.h"
+#include "../core/log.h"
 
-static Entity *projectile_create_entity(void *params)
-{
+static Entity *projectile_create_entity(void *params) {
+
     (void)params;
     return NULL;
+
 }
-static void projectile_destroy_entity(Entity *e)
-{
+static void projectile_destroy_entity(Entity *e) {
     if (!e)
         return;
     projectile_destroy((Projectile *)e);
 }
-static void projectile_update_entity(Entity *e, float dt)
-{
+static void projectile_update_entity(Entity *e, float dt) {
     // Will be overridden via extended update that needs world context (set externally)
     (void)e;
     (void)dt;
 }
 // --- Trail Helper -------------------------------------------------------
-static void trail_init(Trail *t)
-{
+static void trail_init(Trail *t) {
     memset(t, 0, sizeof(*t));
     t->alpha_head = 0.95f;
     t->alpha_tail = 0.05f; // stärkerer Kontrast für sichtbare Transparenz
@@ -38,23 +37,20 @@ static void trail_init(Trail *t)
     t->glow_offset = 1.0f;
     t->glow_alpha_factor = 0.25f;
 }
-static void trail_add_point(Trail *t, Vec2 p)
-{
+static void trail_add_point(Trail *t, Vec2 p) {
     if (t->length < TRAIL_LEN)
         t->length++;
     t->points[t->head] = p;
     t->head = (t->head + 1) % TRAIL_LEN;
 }
-static void trail_render(const Trail *t, Uint8 base_r, Uint8 base_g, Uint8 base_b, struct Renderer *r)
-{
+static void trail_render(const Trail *t, Uint8 base_r, Uint8 base_g, Uint8 base_b, struct Renderer *r) {
     // Mehrere Segmente für Krümmung + Farbverlauf, aber nur eine Linie pro Segment (niedrige Draw Calls)
     int n = t->length;
     if (n <= 1)
         return;
     int headIdx = (t->head - 1 + TRAIL_LEN) % TRAIL_LEN;
     int segments = n - 1; // Anzahl Linien
-    for (int s = 0; s < segments; ++s)
-    {
+    for (int s = 0; s < segments; ++s) {
         int newer = (headIdx - s + TRAIL_LEN) % TRAIL_LEN;     // näher am Kopf
         int older = (headIdx - s - 1 + TRAIL_LEN) % TRAIL_LEN; // näher am Schwanz
         Vec2 a = t->points[newer];
@@ -75,8 +71,7 @@ static void trail_render(const Trail *t, Uint8 base_r, Uint8 base_g, Uint8 base_
         float dx = b.x - a.x;
         float dy = b.y - a.y;
         float len2 = dx * dx + dy * dy;
-        if (len2 < 0.0001f)
-        {
+        if (len2 < 0.0001f) {
             SDL_SetRenderDrawColor(r->sdl, rcol, gcol, bcol, alpha);
             SDL_RenderDrawPointF(r->sdl, a.x, a.y);
             continue;
@@ -94,8 +89,7 @@ static void trail_render(const Trail *t, Uint8 base_r, Uint8 base_g, Uint8 base_
         // Center Linie
         SDL_RenderDrawLineF(r->sdl, a.x, a.y, b.x, b.y);
         // Symmetrische Offsets
-        for (int o = 1; o <= max_off; ++o)
-        {
+        for (int o = 1; o <= max_off; ++o) {
             float ox = nx * (float)o;
             float oy = ny * (float)o;
             // leicht geringere Alpha für äußere Linien
@@ -107,8 +101,8 @@ static void trail_render(const Trail *t, Uint8 base_r, Uint8 base_g, Uint8 base_
     }
 }
 
-static void projectile_render_entity(Entity *e, struct Renderer *r)
-{
+static void projectile_render_entity(Entity *e, struct Renderer *r) {
+
     if (!e)
         return;
     Projectile *p = (Projectile *)e;
@@ -122,13 +116,12 @@ static void projectile_render_entity(Entity *e, struct Renderer *r)
         Services *services = services_get();
         struct TextureManager *texman = services ? services->texman : NULL;
         SDL_Rect src = {0,0,0,0};
-        if(texman)
+        if (texman)
             src = texman_projectile_src(texman, p->variant);
         renderer_draw_texture(r, p->e.texture, (src.w?&src:NULL), &dst, 0);
     }
 }
-static void projectile_on_hit_entity(Entity *e, Entity *hitter)
-{
+static void projectile_on_hit_entity(Entity *e, Entity *hitter) {
     (void)hitter;
     if (!e)
         return;
@@ -136,9 +129,14 @@ static void projectile_on_hit_entity(Entity *e, Entity *hitter)
 }
 static const EntityVTable PROJECTILE_VT = {projectile_create_entity, projectile_destroy_entity, projectile_update_entity, projectile_render_entity, projectile_on_hit_entity, NULL};
 
-Projectile *projectile_create(Entity *owner, Vec2 pos, Vec2 vel, SDL_Texture *tex, int damage, Uint8 cr, Uint8 cg, Uint8 cb)
-{
+Projectile *projectile_create(Entity *owner, Vec2 pos, Vec2 vel, SDL_Texture *tex, int damage, Uint8 cr, Uint8 cg, Uint8 cb) {
+
     Projectile *p = calloc(1, sizeof(Projectile));
+    if (!p) {
+        LOG_ERROR("projectile", "Failed to allocate projectile");
+        return NULL;
+
+}
     p->e.vt = &PROJECTILE_VT;
     p->e.pos = pos;
     p->e.vel = vel;
@@ -164,9 +162,10 @@ Projectile *projectile_create(Entity *owner, Vec2 pos, Vec2 vel, SDL_Texture *te
     p->e.is_dynamic = false; // do not push others
     return p;
 }
-void projectile_destroy(Projectile *p) { free(p); }
-void projectile_update_trail(Projectile *p)
-{
+void projectile_destroy(Projectile *p) {
+    free(p);
+}
+void projectile_update_trail(Projectile *p) {
     if (!p)
         return;
     trail_add_point(&p->trail, (Vec2){p->e.pos.x, p->e.pos.y});
@@ -174,8 +173,7 @@ void projectile_update_trail(Projectile *p)
 
 // --- Update Helpers ----------------------------------------------------
 // Apply gravity contribution from a single planet
-static inline void projectile_apply_gravity_from_planet(Projectile *p, const struct Planet *pl, float dt)
-{
+static inline void projectile_apply_gravity_from_planet(Projectile *p, const struct Planet *pl, float dt) {
     float dx = pl->e.pos.x - p->e.pos.x;
     float dy = pl->e.pos.y - p->e.pos.y;
     // Cheap broad-phase: if either axis diff already exceeds a cutoff where gravity negligible? (optional)
@@ -191,30 +189,29 @@ static inline void projectile_apply_gravity_from_planet(Projectile *p, const str
     p->e.vel.y += accel * dy * inv_dist * dt;
 }
 // Test collision with a single planet using current position
-static void projectile_integrate(Projectile *p, float dt)
-{
+static void projectile_integrate(Projectile *p, float dt) {
     p->e.pos.x += p->e.vel.x * dt;
     p->e.pos.y += p->e.vel.y * dt;
 }
 // Check if projectile is out of bounds and deactivate it
-static bool projectile_check_oob(Projectile *p, const ProjectileUpdateCtx *ctx)
-{
-    if (p->e.pos.x < ctx->min_x || p->e.pos.x > ctx->max_x || p->e.pos.y < ctx->min_y || p->e.pos.y > ctx->max_y)
-    {
+static bool projectile_check_oob(Projectile *p, const ProjectileUpdateCtx *ctx) {
+    if (p->e.pos.x < ctx->min_x || p->e.pos.x > ctx->max_x || p->e.pos.y < ctx->min_y || p->e.pos.y > ctx->max_y) {
         p->active = false;
         return true;
     }
     return false;
 }
 // planet collision now handled in combined gravity pass
-void projectile_update(Projectile *p, const ProjectileUpdateCtx *ctx)
-{
+void projectile_update(Projectile *p, const ProjectileUpdateCtx *ctx) {
     if (!p || !p->active)
         return;
     p->flight_time += ctx->dt;
     // Apply gravity from planets only (collision handled by generic system after integration)
     for (int i = 0; i < ctx->planet_count && p->active; ++i){
-        struct Planet *pl = ctx->planets[i]; if(!pl) continue; projectile_apply_gravity_from_planet(p, pl, ctx->dt); }
+        struct Planet *pl = ctx->planets[i];
+        if (!pl) continue;
+        projectile_apply_gravity_from_planet(p, pl, ctx->dt);
+    }
     if (!p->active)
         return;
     projectile_integrate(p, ctx->dt);

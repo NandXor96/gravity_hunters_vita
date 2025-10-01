@@ -54,7 +54,4 @@ int level_load(const char *filename, GameLevel *out, char *err, size_t errlen);
 // Frees memory previously allocated in GameLevel by level_load.
 void level_free(GameLevel *lvl);
 
-// Debug helper: prints level contents to stdout.
-void level_print(const GameLevel *lvl);
-
 #endif // GH_LEVEL_LOADER_H

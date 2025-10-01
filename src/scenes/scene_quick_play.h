@@ -5,6 +5,9 @@ struct World;
 struct Services;
 struct Renderer;
 
+// Timing constants
+#define PLAYER_DEATH_DELAY_SECONDS 1.0f
+
 typedef struct QuickPlaySettings {
     int planets_count; // 0..2
     int planet_size;   // 0..2
@@ -13,8 +16,7 @@ typedef struct QuickPlaySettings {
     int worlds;        // -1 = infinite or numeric
 } QuickPlaySettings;
 
-typedef struct SceneQuickPlayState
-{
+typedef struct SceneQuickPlayState {
     struct Services *svc;
     struct World *world;
     bool show_hud_text;
@@ -38,4 +40,4 @@ void scene_quick_play_render(Scene *s, struct Renderer *r);
 
 /* Quick Play settings API for external scenes (menu) to set parameters before starting */
 void scene_quick_play_set_settings(const QuickPlaySettings *s);
-const QuickPlaySettings* scene_quick_play_get_settings(void);
+const QuickPlaySettings *scene_quick_play_get_settings(void);

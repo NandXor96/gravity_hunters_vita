@@ -13,8 +13,20 @@ static const TextboxSceneConfig CREDITS_CONFIG = {
     .fallback_count = (int)(sizeof(CREDITS_FALLBACK_LINES) / sizeof(CREDITS_FALLBACK_LINES[0]))
 };
 
-void scene_credits_enter(Scene *s) { textbox_scene_enter(s, &CREDITS_CONFIG); }
-void scene_credits_leave(Scene *s) { textbox_scene_leave(s); }
-void scene_credits_handle_input(Scene *s, const struct InputState *in) { textbox_scene_handle_input(s, in); }
-void scene_credits_update(Scene *s, float dt) { textbox_scene_update(s, dt); }
-void scene_credits_render(Scene *s, struct Renderer *r) { textbox_scene_render(s, r); }
+void scene_credits_enter(Scene *s) {
+
+    textbox_scene_enter(s, &CREDITS_CONFIG);
+
+}
+void scene_credits_leave(Scene *s) {
+    textbox_scene_leave(s);
+}
+void scene_credits_handle_input(Scene *s, const struct InputState *in) {
+    textbox_scene_handle_input(s, in);
+}
+void scene_credits_update(Scene *s, float dt) {
+    textbox_scene_update(s, dt);
+}
+void scene_credits_render(Scene *s, struct Renderer *r) {
+    textbox_scene_render(s, r);
+}

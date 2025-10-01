@@ -5,12 +5,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../core/types.h"
 #include "../services/services.h"
 #include "../services/renderer.h"
 #include "../services/texture_manager.h"
 #include "../services/input.h"
 #include "../app/app.h"
-#include "../ui/ui_prompts.h"
+#include "../game/ui_prompts.h"
+#include "../core/log.h"
 
 #define TEXTBOX_LINE_SPACING   28.f
 #define TEXTBOX_TOP_MARGIN     130.f
@@ -30,8 +32,8 @@ typedef struct TextboxSceneState {
     int prev_back;
 } TextboxSceneState;
 
-static void textbox_scene_clear_lines(TextboxSceneState *st)
-{
+static void textbox_scene_clear_lines(TextboxSceneState *st) {
+
     if (!st)
         return;
     if (st->lines)
@@ -41,10 +43,11 @@ static void textbox_scene_clear_lines(TextboxSceneState *st)
         free(st->text_buffer);
     st->text_buffer = NULL;
     st->line_count = 0;
+
 }
 
-static bool textbox_scene_apply_fallback(TextboxSceneState *st)
-{
+static bool textbox_scene_apply_fallback(TextboxSceneState *st) {
+
     if (!st || !st->config || !st->config->fallback_lines || st->config->fallback_count <= 0)
         return false;
 
@@ -56,19 +59,21 @@ static bool textbox_scene_apply_fallback(TextboxSceneState *st)
         total_len += strlen(st->config->fallback_lines[i]) + 1;
 
     char *buffer = (char *)malloc(total_len);
-    if (!buffer)
+    if (!buffer) {
+        LOG_ERROR("textbox_scene", "Failed to allocate fallback buffer");
         return false;
 
+}
+
     char **lines = (char **)calloc((size_t)count, sizeof(char *));
-    if (!lines)
-    {
+    if (!lines) {
+        LOG_ERROR("textbox_scene", "Failed to allocate fallback lines array");
         free(buffer);
         return false;
     }
 
     char *cursor = buffer;
-    for (int i = 0; i < count; ++i)
-    {
+    for (int i = 0; i < count; ++i) {
         const char *src = st->config->fallback_lines[i];
         size_t len = strlen(src);
         memcpy(cursor, src, len);
@@ -83,8 +88,8 @@ static bool textbox_scene_apply_fallback(TextboxSceneState *st)
     return true;
 }
 
-static bool textbox_scene_load_file(TextboxSceneState *st)
-{
+static bool textbox_scene_load_file(TextboxSceneState *st) {
+
     if (!st || !st->config || !st->config->relative_path || !st->config->relative_path[0])
         return false;
 
@@ -101,15 +106,14 @@ static bool textbox_scene_load_file(TextboxSceneState *st)
     if (!file)
         return false;
 
-    if (fseek(file, 0, SEEK_END) != 0)
-    {
+    if (fseek(file, 0, SEEK_END) != 0) {
         fclose(file);
         return false;
-    }
+
+}
 
     long raw_size = ftell(file);
-    if (raw_size < 0)
-    {
+    if (raw_size < 0) {
         fclose(file);
         return false;
     }
@@ -117,8 +121,8 @@ static bool textbox_scene_load_file(TextboxSceneState *st)
 
     size_t size = (size_t)raw_size;
     char *buffer = (char *)malloc(size + 1);
-    if (!buffer)
-    {
+    if (!buffer) {
+        LOG_ERROR("textbox_scene", "Failed to allocate file buffer");
         fclose(file);
         return false;
     }
@@ -128,8 +132,7 @@ static bool textbox_scene_load_file(TextboxSceneState *st)
     buffer[read_bytes] = '\0';
 
     size_t write_idx = 0;
-    for (size_t i = 0; i < read_bytes; ++i)
-    {
+    for (size_t i = 0; i < read_bytes; ++i) {
         char c = buffer[i];
         if (c == '\r')
             continue;
@@ -137,10 +140,11 @@ static bool textbox_scene_load_file(TextboxSceneState *st)
     }
     buffer[write_idx] = '\0';
 
-    if (write_idx == 0)
-    {
+    if (write_idx == 0) {
+
         free(buffer);
         return false;
+
     }
 
     size_t line_count = 1;
@@ -149,22 +153,20 @@ static bool textbox_scene_load_file(TextboxSceneState *st)
             line_count += 1;
 
     char **lines = (char **)calloc(line_count, sizeof(char *));
-    if (!lines)
-    {
+    if (!lines) {
+        LOG_ERROR("textbox_scene", "Failed to allocate lines array");
         free(buffer);
         return false;
     }
 
     size_t idx = 0;
     char *start = buffer;
-    for (size_t i = 0; i < write_idx; ++i)
-    {
-        if (buffer[i] == '\n')
-        {
+    for (size_t i = 0; i < write_idx; ++i) {
+        if (buffer[i] == '\n') {
             buffer[i] = '\0';
             lines[idx++] = start;
             start = buffer + i + 1;
-        }
+    }
     }
     lines[idx++] = start;
 
@@ -174,20 +176,21 @@ static bool textbox_scene_load_file(TextboxSceneState *st)
     return true;
 }
 
-static void textbox_scene_draw_caret(Renderer *r, float cx, float y, double angle_deg)
-{
+static void textbox_scene_draw_caret(Renderer *r, float cx, float y, double angle_deg) {
+
     if (!r || !r->font)
         return;
 
     const char *caret = "^";
-    SDL_Color color = {255, 255, 255, 255};
+    SDL_Color color = {255, 255, 255, 255
+
+};
     SDL_Surface *surface = TTF_RenderText_Blended(r->font, caret, color);
     if (!surface)
         return;
 
     SDL_Texture *texture = SDL_CreateTextureFromSurface(r->sdl, surface);
-    if (!texture)
-    {
+    if (!texture) {
         SDL_FreeSurface(surface);
         return;
     }
@@ -205,8 +208,8 @@ static void textbox_scene_draw_caret(Renderer *r, float cx, float y, double angl
     SDL_FreeSurface(surface);
 }
 
-static void textbox_scene_ensure_visible(TextboxSceneState *st, int visible_lines)
-{
+static void textbox_scene_ensure_visible(TextboxSceneState *st, int visible_lines) {
+
     if (!st)
         return;
     if (st->top_line < 0)
@@ -214,15 +217,19 @@ static void textbox_scene_ensure_visible(TextboxSceneState *st, int visible_line
     int max_start = (st->line_count > visible_lines) ? (st->line_count - visible_lines) : 0;
     if (st->top_line > max_start)
         st->top_line = max_start;
+
 }
 
-void textbox_scene_enter(Scene *s, const TextboxSceneConfig *config)
-{
+void textbox_scene_enter(Scene *s, const TextboxSceneConfig *config) {
+
     if (!s)
         return;
     TextboxSceneState *st = (TextboxSceneState *)calloc(1, sizeof(TextboxSceneState));
-    if (!st)
+    if (!st) {
+        LOG_ERROR("textbox_scene", "Failed to allocate scene state");
         return;
+
+}
     s->state = st;
     st->svc = app_services();
     st->config = config;
@@ -234,30 +241,31 @@ void textbox_scene_enter(Scene *s, const TextboxSceneConfig *config)
         textbox_scene_apply_fallback(st);
 }
 
-void textbox_scene_leave(Scene *s)
-{
+void textbox_scene_leave(Scene *s) {
+
     TextboxSceneState *st = (TextboxSceneState *)s->state;
     if (!st)
         return;
     textbox_scene_clear_lines(st);
     free(st);
     s->state = NULL;
+
 }
 
-void textbox_scene_handle_input(Scene *s, const struct InputState *in)
-{
+void textbox_scene_handle_input(Scene *s, const struct InputState *in) {
+
     TextboxSceneState *st = (TextboxSceneState *)s->state;
     if (!st || !in)
         return;
 
-    if (st->suppress_input_frames > 0)
-    {
+    if (st->suppress_input_frames > 0) {
         st->suppress_input_frames -= 1;
         st->prev_move_up = in->move_up ? 1 : 0;
         st->prev_move_down = in->move_down ? 1 : 0;
         st->prev_back = in->back ? 1 : 0;
         return;
-    }
+
+}
 
     int up = in->move_up ? 1 : 0;
     int down = in->move_down ? 1 : 0;
@@ -267,7 +275,7 @@ void textbox_scene_handle_input(Scene *s, const struct InputState *in)
     int down_pressed = (down && !st->prev_move_down) || in->speed_down_step;
 
     struct Services *svc = st->svc;
-    int display_h = svc ? svc->display_h : 544;
+    int display_h = svc ? svc->display_h : DISPLAY_H;
     float content_height = (float)display_h - TEXTBOX_TOP_MARGIN - TEXTBOX_BOTTOM_MARGIN;
     if (content_height < TEXTBOX_LINE_SPACING)
         content_height = TEXTBOX_LINE_SPACING;
@@ -275,21 +283,22 @@ void textbox_scene_handle_input(Scene *s, const struct InputState *in)
     if (visible_lines < 1)
         visible_lines = 1;
 
-    if (up_pressed)
-    {
+    if (up_pressed) {
+
         st->top_line -= 1;
         textbox_scene_ensure_visible(st, visible_lines);
+
     }
-    if (down_pressed)
-    {
+    if (down_pressed) {
         st->top_line += 1;
         textbox_scene_ensure_visible(st, visible_lines);
     }
 
-    if (back && !st->prev_back)
-    {
+    if (back && !st->prev_back) {
+
         app_set_scene(SCENE_MENU);
         return;
+
     }
 
     st->prev_move_up = up;
@@ -297,14 +306,15 @@ void textbox_scene_handle_input(Scene *s, const struct InputState *in)
     st->prev_back = back;
 }
 
-void textbox_scene_update(Scene *s, float dt)
-{
+void textbox_scene_update(Scene *s, float dt) {
+
     (void)s;
     (void)dt;
+
 }
 
-void textbox_scene_render(Scene *s, struct Renderer *r)
-{
+void textbox_scene_render(Scene *s, struct Renderer *r) {
+
     TextboxSceneState *st = (TextboxSceneState *)s->state;
     if (!st || !r)
         return;
@@ -321,7 +331,9 @@ void textbox_scene_render(Scene *s, struct Renderer *r)
     int cx = display_w / 2;
 
     const char *title = (st->config && st->config->title) ? st->config->title : "";
-    renderer_draw_text_centered(r, title, (float)cx, 60.f, (TextStyle){0});
+    renderer_draw_text_centered(r, title, (float)cx, 60.f, (TextStyle){0
+
+});
 
     float content_w = TEXTBOX_CONTENT_WIDTH;
     float max_w = (float)display_w * 0.9f;
@@ -334,7 +346,9 @@ void textbox_scene_render(Scene *s, struct Renderer *r)
         content_h = TEXTBOX_LINE_SPACING * 2.f;
 
     SDL_FRect box = {content_x - 16.f, content_y - 20.f, content_w + 32.f, content_h + 40.f};
-    renderer_draw_filled_rect(r, box, (SDL_Color){20, 20, 20, 180});
+    renderer_draw_filled_rect(r, box, (SDL_Color) {
+        20, 20, 20, 180
+    });
 
     int visible_lines = (int)(content_h / TEXTBOX_LINE_SPACING);
     if (visible_lines < 1)
@@ -346,11 +360,11 @@ void textbox_scene_render(Scene *s, struct Renderer *r)
         end_line = st->line_count;
 
     float y = content_y;
-    for (int i = st->top_line; i < end_line; ++i)
-    {
+    for (int i = st->top_line; i < end_line; ++i) {
         const char *line = (st->lines && i >= 0 && i < st->line_count) ? st->lines[i] : NULL;
         if (line && line[0] != '\0')
-            renderer_draw_text(r, line, content_x, y, (TextStyle){0});
+            renderer_draw_text(r, line, content_x, y, (TextStyle){0
+    });
         y += TEXTBOX_LINE_SPACING;
     }
 

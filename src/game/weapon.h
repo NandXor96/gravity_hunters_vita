@@ -14,8 +14,8 @@ typedef struct Weapon {
     int   energy_cost;        // cost per shot (e.g., 100)
 } Weapon;
 
-Weapon* weapon_create_default(void);
-void    weapon_destroy(Weapon* w);
-int     weapon_can_fire(const Weapon* w, float world_time); // only checks cooldown now
-void    weapon_on_fired(Weapon* w, float world_time); // only updates last_fire_time (no energy deduction)
-void    weapon_update(Weapon* w, float dt); // currently no-op (placeholder for future weapon-specific logic)
+Weapon *weapon_create_default(void);
+void    weapon_destroy(Weapon *w);
+int     weapon_can_fire(const Weapon *w, float world_time); // only checks cooldown now
+void    weapon_on_fired(Weapon *w, float world_time); // only updates last_fire_time (no energy deduction)
+void    weapon_update(Weapon *w, float dt); // currently no-op (placeholder for future weapon-specific logic)

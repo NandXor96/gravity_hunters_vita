@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "../core/log.h"
 #include "../services/services.h"
 #include "../services/renderer.h"
 #include "../services/texture_manager.h"
@@ -17,8 +18,8 @@
 static uint8_t enemy_difficulty[4] = {0, 110, 150, 210};
 static uint8_t enemy_count[3] = {2, 3, 3};
 
-static void on_world_time_over(struct World *w, void *user)
-{
+static void on_world_time_over(struct World *w, void *user) {
+
     (void)w;
     Scene *scene = (Scene *)user;
     if (!scene)
@@ -27,36 +28,39 @@ static void on_world_time_over(struct World *w, void *user)
     if (!st || st->time_over_handled || st->player_death_handled)
         return;
     st->time_over_handled = 1;
-    if (st && st->world)
-    {
+    if (st && st->world) {
         overlay_endgame_qp_set_stats(st->world->kills, st->world->score);
-    }
+
+}
     app_push_overlay(SCENE_OVERLAY_ENDGAME);
 }
 
 /* Module-level settings storage (menu writes these before starting scene) */
 static QuickPlaySettings g_qp_settings = {0};
 
-void scene_quick_play_set_settings(const QuickPlaySettings *s)
-{
+void scene_quick_play_set_settings(const QuickPlaySettings *s) {
+
     if (!s)
         return;
     g_qp_settings = *s;
+
 }
-const QuickPlaySettings *scene_quick_play_get_settings(void)
-{
+const QuickPlaySettings *scene_quick_play_get_settings(void) {
     return &g_qp_settings;
 }
 
-void scene_quick_play_pause(Scene *s)
-{
+void scene_quick_play_pause(Scene *s) {
+
     (void)s;
     app_push_overlay(SCENE_OVERLAY_PAUSE);
-}
-void scene_quick_play_resume(Scene *s) { (void)s; }
 
-static void spawn_to_maintain(SceneQuickPlayState *st)
-{
+}
+void scene_quick_play_resume(Scene *s) {
+    (void)s;
+}
+
+static void spawn_to_maintain(SceneQuickPlayState *st) {
+
     if (!st || !st->world)
         return;
     World *w = st->world;
@@ -70,18 +74,23 @@ static void spawn_to_maintain(SceneQuickPlayState *st)
     if (qs)
         enemy_diff = enemy_difficulty[qs->difficulty];
 
-    for (int i = w->enemy_count; i < max_enemies; ++i)
-    {
+    for (int i = w->enemy_count; i < max_enemies; ++i) {
         Vec2 epos = world_find_free_position(w, 10.f, 150.f, 100.f, 32.f, 400);
         if (epos.x < 0.f)
             break;
         world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y, enemy_diff);
-    }
+
+}
 }
 
-void scene_quick_play_enter(Scene *s)
-{
+void scene_quick_play_enter(Scene *s) {
+
     SceneQuickPlayState *st = calloc(1, sizeof(SceneQuickPlayState));
+    if (!st) {
+        LOG_ERROR("scene_quick_play", "Failed to allocate scene state");
+        return;
+
+}
     s->state = st;
     st->svc = app_services();
     u32 seed = (u32)time(NULL);
@@ -94,8 +103,7 @@ void scene_quick_play_enter(Scene *s)
     float tl = qs ? (float)qs->time_seconds : 20.f;
     /* map planet_size to an average radius: 0=small,1=medium,2=large */
     float avg_radius = 56.f;
-    if (qs)
-    {
+    if (qs) {
         if (qs->planet_size == 0)
             avg_radius = 50.f;
         else if (qs->planet_size == 1)
@@ -106,8 +114,8 @@ void scene_quick_play_enter(Scene *s)
 
     st->world = world_create(st->svc, seed);
 
-    if (st->world)
-    {
+    if (st->world) {
+
         /* time limit from settings (seconds) */
         if (tl <= 0.f)
             tl = -1.f; /* treat non-positive as infinite */
@@ -120,28 +128,25 @@ void scene_quick_play_enter(Scene *s)
         /* Initial enemy placement: scenes control spawning now. */
         spawn_to_maintain(st);
         st->world->hud = hud_create(st->world->svc, st->world->player);
+
     }
 }
-void scene_quick_play_leave(Scene *s)
-{
+void scene_quick_play_leave(Scene *s) {
     SceneQuickPlayState *st = (SceneQuickPlayState *)s->state;
-    if (st)
-    {
+    if (st) {
         if (st->world)
             world_destroy(st->world);
         free(st);
-    }
 }
-void scene_quick_play_handle_input(Scene *s, const struct InputState *in)
-{
+}
+void scene_quick_play_handle_input(Scene *s, const struct InputState *in) {
     if (in->pause)
         scene_quick_play_pause(s);
     SceneQuickPlayState *st = (SceneQuickPlayState *)s->state;
     if (st)
         st->last_input = *in;
 }
-void scene_quick_play_update(Scene *s, float dt)
-{
+void scene_quick_play_update(Scene *s, float dt) {
     SceneQuickPlayState *st = (SceneQuickPlayState *)s->state;
     if (!st || !st->world)
         return;
@@ -155,27 +160,25 @@ void scene_quick_play_update(Scene *s, float dt)
     world_update(st->world, dt);
 
     Player *player = st->world->player;
-    if (player && !player->alive && !st->player_death_handled)
-    {
+    if (player && !player->alive && !st->player_death_handled) {
         st->player_death_handled = 1;
-        st->player_death_delay = 1.0f;
-    }
+        st->player_death_delay = PLAYER_DEATH_DELAY_SECONDS;
+}
 
-    if (st->player_death_handled && !st->time_over_handled)
-    {
+    if (st->player_death_handled && !st->time_over_handled) {
+
         st->player_death_delay -= dt;
-        if (st->player_death_delay <= 0.f)
-        {
+        if (st->player_death_delay <= 0.f) {
             st->time_over_handled = 1;
             if (st->world)
                 overlay_endgame_qp_set_stats(st->world->kills, st->world->score);
             app_push_overlay(SCENE_OVERLAY_ENDGAME);
-        }
+
+    }
         return;
     }
 }
-void scene_quick_play_render(Scene *s, struct Renderer *r)
-{
+void scene_quick_play_render(Scene *s, struct Renderer *r) {
     SceneQuickPlayState *st = (SceneQuickPlayState *)s->state;
     struct Services *svc = st->svc;
     SDL_Texture *bg = texman_get(svc->texman, TEX_BG_STARFIELD);

@@ -6,8 +6,7 @@
 #include "../core/math.h"
 
 
-typedef enum
-{
+typedef enum {
     ENT_PLAYER,
     ENT_ENEMY,
     ENT_PLANET,
@@ -18,8 +17,7 @@ typedef enum
 typedef struct Entity Entity;
 
 struct Renderer; // forward declare
-typedef struct EntityVTable
-{
+typedef struct EntityVTable {
     Entity *(*create)(void *params); // generic factory (params type depends on entity kind)
     void (*destroy)(Entity *);
     void (*update)(Entity *, float dt);
@@ -43,8 +41,7 @@ typedef struct EntityCollider {
     unsigned int shape; // bitmask of ColliderShapeFlags
 } EntityCollider;
 
-struct Entity
-{
+struct Entity {
     const EntityVTable *vt;
     EntityType type;
     Vec2 pos;  // position
