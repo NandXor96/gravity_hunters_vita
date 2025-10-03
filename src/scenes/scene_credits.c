@@ -10,7 +10,10 @@ static const TextboxSceneConfig CREDITS_CONFIG = {
     .title = "CREDITS",
     .relative_path = "credits.txt",
     .fallback_lines = CREDITS_FALLBACK_LINES,
-    .fallback_count = (int)(sizeof(CREDITS_FALLBACK_LINES) / sizeof(CREDITS_FALLBACK_LINES[0]))
+    .fallback_count = (int)(sizeof(CREDITS_FALLBACK_LINES) / sizeof(CREDITS_FALLBACK_LINES[0])),
+    .use_custom_prompts = true,
+    .show_ok_prompt = false,
+    .show_back_prompt = true
 };
 
 void scene_credits_enter(Scene *s) {

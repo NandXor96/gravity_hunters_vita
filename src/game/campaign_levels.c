@@ -14,6 +14,11 @@
 #include <strings.h> // strcasecmp
 #include "../core/log.h"
 
+#ifndef PATH_MAX
+#define PATH_MAX 256
+#endif
+
+
 #define LEVEL_EXTENSION ".lvl"
 
 static int ensure_descriptor_capacity(CampaignLevelList *list, int min_capacity) {

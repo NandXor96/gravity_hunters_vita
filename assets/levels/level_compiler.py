@@ -3,17 +3,15 @@
 Level compiler: JSON -> binary .lvl according to lvl_binary.md
 
 Usage:
-    python3 tools/level_compiler.py build levels/example_level.json build/example_level.lvl
+    python3 level_compiler.py [<folder>]
 
-Design goals:
-- Clear constants for all magic values / enum mappings (no magic numbers inline)
-- Validate input and produce helpful errors
-- Produce little-endian binary compatible with the layout in `lvl_binary.md`
-
+Without arguments the script converts every `.json` file located next to this
+script into a `.lvl` file with the same base name. When a folder is provided it
+performs the same batch conversion within that directory.
 """
-import sys
 import json
 import struct
+import sys
 from pathlib import Path
 
 # --------------------------- Layout constants ---------------------------
@@ -41,15 +39,14 @@ ENEMY_TYPE = {
 
 SPAWN_KIND = {
     'on_start': 0,
-    'on_timer': 1,
-    'on_death': 2,
+    'on_death': 1,
 }
 
 # Struct formats (little-endian)
 # Header fixed part stops before start_text which is a nul-terminated utf-8 string
-HEADER_FMT = '<4sHHIHH3IffIII'
+HEADER_FMT = '<4sHHIH3IffIII'
 # fields: magic(4s), version(H), reserved(H), time_limit(I),
-# goal_kills(H), goal_deaths(H), rating[3](3I),
+# goal_kills(H), rating[3](3I),
 # player_pos_x(f), player_pos_y(f), player_health(I), planets_count(I), enemies_count(I)
 
 PLANET_FMT = '<Bfff'  # type(uint8), size(float), pos_x(float), pos_y(float)
@@ -81,35 +78,40 @@ def clamp_u32(x):
 
 def parse_spawn_when(s):
     # returns (spawn_kind, spawn_arg, spawn_delay)
-    # Accepts multiple forms:
+    # Accepts:
     # - None / missing -> on_start
-    # - numeric -> on_timer with seconds
-    # - string: 'on_start' | 'on_timer:30' | 'on_death:1'
-    # - dict: {"kind": "on_start"|"on_timer"|"on_death", "arg": <int>, "delay": <int>}
+    # - string: 'on_start' | 'on_death:1'
+    # - dict: {"kind": "on_start"|"on_death", "arg": <int>, "delay": <int>}
+    # Legacy forms such as numeric, 'on_timer', or dicts using 'on_timer' are
+    # converted to on_start with a combined delay.
     if not s:
         return SPAWN_KIND['on_start'], 0, 0
-    # dict form
     if isinstance(s, dict):
         kind_s = s.get('kind', 'on_start')
-        if kind_s not in SPAWN_KIND:
-            raise ValueError(f'unknown spawn.kind: {kind_s}')
-        kind = SPAWN_KIND[kind_s]
-        arg = s.get('arg', 0)
         delay = s.get('delay', 0)
-        return kind, arg, delay
-    # numeric -> on_timer
+        if kind_s == 'on_death':
+            arg = s.get('arg', 0)
+            return SPAWN_KIND['on_death'], arg, delay
+        if kind_s == 'on_timer':
+            legacy = s.get('arg', 0)
+            return SPAWN_KIND['on_start'], 0, int(legacy) + int(delay)
+        if kind_s == 'on_start':
+            return SPAWN_KIND['on_start'], 0, delay
+        raise ValueError(f'unknown spawn.kind: {kind_s}')
     if isinstance(s, (int, float)):
-        return SPAWN_KIND['on_timer'], int(s), 0
-    # string
-    s = s.strip()
-    if s == 'on_start':
-        return SPAWN_KIND['on_start'], 0, 0
-    if s.startswith('on_timer:'):
-        _, val = s.split(':', 1)
-        return SPAWN_KIND['on_timer'], int(val), 0
-    if s.startswith('on_death:'):
-        _, val = s.split(':', 1)
-        return SPAWN_KIND['on_death'], val, 0
+        return SPAWN_KIND['on_start'], 0, int(s)
+    if isinstance(s, str):
+        stripped = s.strip()
+        if stripped == 'on_start':
+            return SPAWN_KIND['on_start'], 0, 0
+        if stripped.startswith('on_death:'):
+            _, val = stripped.split(':', 1)
+            return SPAWN_KIND['on_death'], int(val), 0
+        if stripped.startswith('on_timer:'):
+            _, val = stripped.split(':', 1)
+            return SPAWN_KIND['on_start'], 0, int(val)
+        if stripped == 'on_timer':
+            return SPAWN_KIND['on_start'], 0, 0
     raise ValueError(f'unrecognized spawn_when: {s}')
 
 
@@ -151,9 +153,9 @@ def build_level(json_path: Path, out_path: Path):
     version = int(data.get('version', VERSION))
     time_limit = clamp_u32(data.get('time_limit', 0))
 
-    goal = data.get('goal', {})
-    goal_kills = clamp_u16(goal.get('kills', 0))
-    goal_deaths = clamp_u16(goal.get('deaths', 0))
+    if 'kills_goal' not in data:
+        raise ValueError('kills_goal is required at the top level of the level JSON')
+    goal_kills = clamp_u16(data['kills_goal'])
 
     rating = data.get('rating', [0, 0, 0])
     if not (isinstance(rating, list) and len(rating) == 3):
@@ -251,7 +253,7 @@ def build_level(json_path: Path, out_path: Path):
             # The runtime loader may resolve this ID to an index if needed.
             e['spawn_arg_index'] = target_id
         else:
-            e['spawn_arg_index'] = int(e['spawn_arg']) if isinstance(e['spawn_arg'], int) else 0
+            e['spawn_arg_index'] = 0
 
     # ----- Write binary -----
     header_packed = struct.pack(
@@ -261,7 +263,6 @@ def build_level(json_path: Path, out_path: Path):
         0,
         int(time_limit),
         int(goal_kills),
-        int(goal_deaths),
         int(rating[0]),
         int(rating[1]),
         int(rating[2]),
@@ -301,11 +302,40 @@ def build_level(json_path: Path, out_path: Path):
     print(f'Wrote {out_path} (planets={len(planet_entries)} enemies={len(enemy_objects)})')
 
 
+def compile_folder(json_dir: Path) -> int:
+    json_dir = json_dir.resolve()
+    if not json_dir.is_dir():
+        raise NotADirectoryError(f"{json_dir} is not a directory")
+
+    json_files = sorted(p for p in json_dir.glob('*.json') if p.is_file())
+    if not json_files:
+        print(f'No .json files found in {json_dir}')
+        return 0
+
+    print(f'Compiling {len(json_files)} level(s) from {json_dir}')
+    errors = []
+    for json_path in json_files:
+        out_path = json_path.with_suffix('.lvl')
+        try:
+            build_level(json_path, out_path)
+        except Exception as exc:  # pylint: disable=broad-except
+            errors.append((json_path, exc))
+            print(f'Error: failed to compile {json_path.name}: {exc}')
+
+    if errors:
+        print(f'Encountered {len(errors)} error(s) during compilation.')
+        return 1
+
+    print('All levels compiled successfully.')
+    return 0
+
+
 # --------------------------- CLI ---------------------------
 if __name__ == '__main__':
-    if len(sys.argv) < 4 or sys.argv[1] != 'build':
-        print('Usage: level_compiler.py build <input.json> <output.lvl>')
-        sys.exit(2)
-    inp = Path(sys.argv[2])
-    out = Path(sys.argv[3])
-    build_level(inp, out)
+    target_dir = Path(sys.argv[1]).resolve() if len(sys.argv) >= 2 else Path(__file__).resolve().parent
+    try:
+        exit_code = compile_folder(target_dir)
+    except Exception as err:  # pylint: disable=broad-except
+        print(f'Compilation failed: {err}')
+        exit_code = 1
+    sys.exit(exit_code)

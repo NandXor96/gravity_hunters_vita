@@ -78,7 +78,7 @@ static void spawn_to_maintain(SceneQuickPlayState *st) {
         Vec2 epos = world_find_free_position(w, 10.f, 150.f, 100.f, 32.f, 400);
         if (epos.x < 0.f)
             break;
-        world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y, enemy_diff);
+    world_spawn_enemy(w, rng_rangei(&w->rng, 0, ENEMY_TYPE_COUNT - 1), epos.x, epos.y, enemy_diff, 0);
 
 }
 }
@@ -128,6 +128,8 @@ void scene_quick_play_enter(Scene *s) {
         /* Initial enemy placement: scenes control spawning now. */
         spawn_to_maintain(st);
         st->world->hud = hud_create(st->world->svc, st->world->player);
+
+        app_push_overlay(SCENE_OVERLAY_START_GAME);
 
     }
 }

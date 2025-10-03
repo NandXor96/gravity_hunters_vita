@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "../app/scene.h"
 
 typedef struct TextboxSceneConfig {
@@ -7,6 +9,9 @@ typedef struct TextboxSceneConfig {
     const char *relative_path; /* relative to assets root */
     const char *const *fallback_lines;
     int fallback_count;
+    bool use_custom_prompts;
+    bool show_ok_prompt;
+    bool show_back_prompt;
 } TextboxSceneConfig;
 
 void textbox_scene_enter(Scene *s, const TextboxSceneConfig *config);

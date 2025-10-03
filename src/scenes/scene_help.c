@@ -12,7 +12,10 @@ static const TextboxSceneConfig HELP_CONFIG = {
     .title = "HELP",
     .relative_path = "help.txt",
     .fallback_lines = HELP_FALLBACK_LINES,
-    .fallback_count = (int)(sizeof(HELP_FALLBACK_LINES) / sizeof(HELP_FALLBACK_LINES[0]))
+    .fallback_count = (int)(sizeof(HELP_FALLBACK_LINES) / sizeof(HELP_FALLBACK_LINES[0])),
+    .use_custom_prompts = true,
+    .show_ok_prompt = false,
+    .show_back_prompt = true
 };
 
 void scene_help_enter(Scene *s) {

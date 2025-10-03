@@ -66,7 +66,6 @@ void scene_campaign_enter(Scene *s) {
 
     /* copy goals/ratings into scene state for end-of-level evaluation */
     st->goal_kills = lvl.goal_kills;
-    st->goal_deaths = lvl.goal_deaths;
     st->rating[0] = lvl.rating[0];
     st->rating[1] = lvl.rating[1];
     st->rating[2] = lvl.rating[2];
@@ -109,9 +108,8 @@ void scene_campaign_enter(Scene *s) {
             se->spawned = 0;
             se->runtime_index = -1;
             se->runtime_ptr = NULL;
-            se->target_id = le->spawn_kind == 2 ? le->spawn_arg : 0;
+            se->target_id = (le->spawn_kind == 1) ? le->spawn_arg : 0;
             se->target_runtime_index = -1;
-            se->trigger_time = (le->spawn_kind == 1) ? ((float)le->spawn_arg + (float)le->spawn_delay) : 0.0f;
             se->scheduled_time = -1.0f;
             // handle on_start spawns: if a delay is set, schedule it, otherwise spawn immediately
             if (le->spawn_kind == 0) {
@@ -119,7 +117,7 @@ void scene_campaign_enter(Scene *s) {
                     se->scheduled_time = w->time + (float)le->spawn_delay;
                 }
                 else {
-                    if (world_spawn_enemy(w, (int)le->type, se->template.pos_x, se->template.pos_y, le->difficulty)) {
+                    if (world_spawn_enemy(w, (int)le->type, se->template.pos_x, se->template.pos_y, le->difficulty, le->health)) {
                         se->spawned = 1;
                     }
                     else {
@@ -135,6 +133,10 @@ void scene_campaign_enter(Scene *s) {
 
     // keep world reference in scene state; level data copied into spawn structures later
     level_free(&lvl);
+
+    if (st->world) {
+        app_push_overlay(SCENE_OVERLAY_START_GAME);
+    }
 }
 
 void scene_campaign_leave(Scene *s) {
@@ -226,9 +228,9 @@ void scene_campaign_update(Scene *s, float dt) {
         if (se->spawned)
             continue;
         // timer-based spawns and scheduled on-death spawns share the same time test
-        if ((se->template.spawn_kind == 1 && w->time >= se->trigger_time) || (se->scheduled_time >= 0.0f && w->time >= se->scheduled_time)) {
+    if (se->scheduled_time >= 0.0f && w->time >= se->scheduled_time) {
             LevelEnemy *le = &se->template;
-            if (world_spawn_enemy(w, (int)le->type, le->pos_x, le->pos_y, le->difficulty)) {
+            if (world_spawn_enemy(w, (int)le->type, le->pos_x, le->pos_y, le->difficulty, le->health)) {
                 se->spawned = 1;
                 se->scheduled_time = -1.0f;
                 // try to immediately bind runtime pointer/index to reduce ambiguity when many spawns occur
@@ -296,7 +298,7 @@ void scene_campaign_update(Scene *s, float dt) {
         SpawnEntry *se = &st->spawns[i];
         if (se->spawned)
             continue;
-        if (se->template.spawn_kind != 2)
+    if (se->template.spawn_kind != 1)
             continue;
         // find target spawn entry by id
         uint32_t target_id = se->target_id;
@@ -355,7 +357,7 @@ void scene_campaign_update(Scene *s, float dt) {
             }
             else {
                 LevelEnemy *le = &se->template;
-                if (world_spawn_enemy(w, (int)le->type, le->pos_x, le->pos_y, le->difficulty)) {
+                if (world_spawn_enemy(w, (int)le->type, le->pos_x, le->pos_y, le->difficulty, le->health)) {
                     se->spawned = 1;
                 }
                 else {

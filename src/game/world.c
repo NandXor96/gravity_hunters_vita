@@ -1,6 +1,7 @@
 #include "world.h"
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
 #include "player.h"
 #include "enemy.h"
 #include "planet.h"
@@ -11,6 +12,7 @@
 #include "../services/renderer.h"
 #include "../services/texture_manager.h"
 #include "../services/services.h"
+#include "../services/audio.h"
 #include "../core/rand.h"
 #include "../core/log.h"
 #include <stdio.h>
@@ -384,7 +386,7 @@ bool world_add_player(World *w, float x, float y) {
     return true;
 }
 
-bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty) {
+bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty, uint32_t health) {
 
     if (!w)
         return false;
@@ -395,6 +397,11 @@ bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty)
     Enemy *en = enemy_create(w, (EnemyType)kind, x, y, shooter_index, difficulty);
     if (!en)
         return false;
+    if (health > 0) {
+        if (health > (uint32_t)INT16_MAX)
+            health = (uint32_t)INT16_MAX;
+        en->health = (int16_t)health;
+    }
     w->enemies[w->enemy_count++] = en;
     return true;
 
@@ -405,7 +412,13 @@ int world_register_shooter(World *w) {
 bool world_fire_projectile(World *w, int shooter_index, Entity *owner, float angle, float strength) {
     if (!w)
         return false;
-    return projectile_system_fire(&w->projsys, w->time, shooter_index, owner, angle, strength);
+    bool fired = projectile_system_fire(&w->projsys, w->time, shooter_index, owner, angle, strength);
+    if (fired) {
+        Services *svc = w->svc;
+        if (svc && svc->audio)
+            audio_play_shot(svc->audio, owner && owner->type == ENT_PLAYER);
+    }
+    return fired;
 }
 bool world_add_explosion(World *w, int type, float x, float y, float scale) {
     if (!w)

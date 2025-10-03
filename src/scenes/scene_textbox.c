@@ -374,6 +374,14 @@ void textbox_scene_render(Scene *s, struct Renderer *r) {
     if (end_line < st->line_count)
         textbox_scene_draw_caret(r, (float)cx, content_y + content_h + 8.f, 180.0);
 
-    if (!app_has_overlay())
-        ui_draw_ok_back_prompts(r, svc, true);
+    if (!app_has_overlay()) {
+        bool show_ok = true;
+        bool show_back = true;
+        if (st->config && st->config->use_custom_prompts) {
+            show_ok = st->config->show_ok_prompt;
+            show_back = st->config->show_back_prompt;
+        }
+        if (show_ok || show_back)
+            ui_draw_prompts(r, svc, show_ok, show_back);
+    }
 }

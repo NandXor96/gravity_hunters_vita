@@ -10,9 +10,6 @@ if(BUILD_VITA)
       message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
     endif()
   endif()
-endif()
-
-if(BUILD_VITA)
   include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 endif()
 
@@ -29,8 +26,13 @@ if(BUILD_VITA)
   find_package(SDL2 REQUIRED)
   target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS} ${FREETYPE_INCLUDE_DIRS})
   target_link_libraries(${PROJECT_NAME}
+  SDL2_image SDL2_ttf SDL2_mixer freetype
+    modplug mpg123 vorbisfile vorbis ogg opusfile opus xmp
+    bz2 webpdemux webp png jpeg
     ${SDL2_STATIC_LIBRARIES} ${FREETYPE_LIBRARIES}
-    SDL2_image freetype bz2 SDL2_ttf freetype webpdemux webp png jpeg z pthread m)
+    stdc++
+    z pthread m
+    SceAppUtil_stub SceSysmodule_stub)
   set(VITA_APP_NAME "Gravity Hunters")
   set(VITA_TITLEID  "GRAVHUNT1")
   set(VITA_VERSION  "01.00")
@@ -52,33 +54,69 @@ if(BUILD_VITA)
     FILE ./assets/images/enemies_atlas.png assets/images/enemies_atlas.png
     FILE ./assets/images/splashscreen.png assets/images/splashscreen.png
 
-    FILE ./assets/credits.txt assets/credits.txt
-    FILE ./assets/help.txt assets/help.txt
+    FILE ./assets/audio/bg_loop.ogg assets/audio/bg_loop.ogg
+    FILE ./assets/audio/shot.ogg assets/audio/shot.ogg
+    FILE ./assets/audio/shot2.ogg assets/audio/shot2.ogg
 
     FILE ./assets/buttons/Vita_Circle.png assets/buttons/Vita_Circle.png
     FILE ./assets/buttons/Vita_Cross.png assets/buttons/Vita_Cross.png
 
-    # Add all files in assets/licenses/
-    file(GLOB LICENSE_FILES CONFIGURE_DEPENDS assets/licenses/*)
-    foreach(license_file IN LISTS LICENSE_FILES)
-      get_filename_component(license_name ${license_file} NAME)
-      set(VPK_LICENSE_FILE "FILE ./${license_file} assets/licenses/${license_name}")
-      list(APPEND VPK_LICENSE_FILES ${VPK_LICENSE_FILE})
-    endforeach()
-    foreach(vpk_file IN LISTS VPK_LICENSE_FILES)
-      set(VITA_VPK_FILES "${VITA_VPK_FILES}\n    ${vpk_file}")
-    endforeach()
-    # Insert all license files
-    ${VITA_VPK_FILES}
+    FILE ./assets/levels/1.lvl assets/levels/1.lvl
+    FILE ./assets/levels/2.lvl assets/levels/2.lvl
+    FILE ./assets/levels/3.lvl assets/levels/3.lvl
+    FILE ./assets/levels/4.lvl assets/levels/4.lvl
+    FILE ./assets/levels/5.lvl assets/levels/5.lvl
+
+    FILE ./assets/credits.txt assets/credits.txt
+    FILE ./assets/help.txt assets/help.txt
+
+    FILE ./licenses/assets_license.txt licenses/assets_license.txt
+    FILE ./licenses/bzip2_license.txt licenses/bzip2_license.txt
+    FILE ./licenses/code_license.txt licenses/code_license.txt
+    FILE ./licenses/font_license.txt licenses/font_license.txt
+    FILE ./licenses/freetype_license.txt licenses/freetype_license.txt
+    FILE ./licenses/libjpeg_license.txt licenses/libjpeg_license.txt
+    FILE ./licenses/libpng_license.txt licenses/libpng_license.txt
+    FILE ./licenses/libwebp_license.txt licenses/libwebp_license.txt
+    FILE ./licenses/sdl2_image_license.txt licenses/sdl2_image_license.txt
+    FILE ./licenses/sdl2_license.txt licenses/sdl2_license.txt
+    FILE ./licenses/sdl2_ttf_license.txt licenses/sdl2_ttf_license.txt
+    FILE ./licenses/zlib_license.txt licenses/zlib_license.txt
   )
 else()
+  # PC Build - nur ausführen wenn BUILD_VITA=OFF
   find_package(SDL2 REQUIRED)
   find_package(PkgConfig REQUIRED)
-  target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS} /opt/homebrew/include)
-  target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} /opt/homebrew/Cellar/sdl2_image/2.8.8/lib/libSDL2_image.dylib /opt/homebrew/Cellar/sdl2_ttf/2.24.0/lib/libSDL2_ttf.dylib m)
+  pkg_check_modules(SDL2IMAGE REQUIRED SDL2_image)
+  pkg_check_modules(SDL2TTF REQUIRED SDL2_ttf)
+  pkg_check_modules(SDL2MIXER REQUIRED SDL2_mixer)
+  target_include_directories(${PROJECT_NAME} PRIVATE ${SDL2_INCLUDE_DIRS} ${SDL2IMAGE_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS} ${SDL2MIXER_INCLUDE_DIRS})
+  if(SDL2IMAGE_LIBRARY_DIRS)
+    target_link_directories(${PROJECT_NAME} PRIVATE ${SDL2IMAGE_LIBRARY_DIRS})
+  endif()
+  if(SDL2TTF_LIBRARY_DIRS)
+    target_link_directories(${PROJECT_NAME} PRIVATE ${SDL2TTF_LIBRARY_DIRS})
+  endif()
+  if(SDL2MIXER_LIBRARY_DIRS)
+    target_link_directories(${PROJECT_NAME} PRIVATE ${SDL2MIXER_LIBRARY_DIRS})
+  endif()
+  set(PC_LINK_LIBS ${SDL2_LIBRARIES} ${SDL2IMAGE_LIBRARIES} ${SDL2TTF_LIBRARIES} ${SDL2MIXER_LIBRARIES})
+  list(REMOVE_DUPLICATES PC_LINK_LIBS)
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${PC_LINK_LIBS})
   target_compile_definitions(${PROJECT_NAME} PRIVATE PLATFORM_PC)
 endif()
 
-# Convenience custom targets for make pc / make vita if using Unix Makefiles generator
-add_custom_target(pc COMMAND ${CMAKE_COMMAND} -DBUILD_VITA=OFF -S ${CMAKE_SOURCE_DIR} -B ${CMAKE_BINARY_DIR}/pc && ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/pc DEPENDS ${PROJECT_NAME})
-add_custom_target(vita COMMAND ${CMAKE_COMMAND} -DBUILD_VITA=ON  -S ${CMAKE_SOURCE_DIR} -B ${CMAKE_BINARY_DIR}/vita && ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/vita)
+# Custom targets - diese werden beim ersten cmake-Lauf definiert, unabhängig von BUILD_VITA
+add_custom_target(pc 
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/pc
+  COMMAND ${CMAKE_COMMAND} -DBUILD_VITA=OFF -S ${CMAKE_SOURCE_DIR} -B ${CMAKE_BINARY_DIR}/pc 
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/pc
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(vita 
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/vita
+  COMMAND ${CMAKE_COMMAND} -DBUILD_VITA=ON -S ${CMAKE_SOURCE_DIR} -B ${CMAKE_BINARY_DIR}/vita 
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/vita
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)

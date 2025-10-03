@@ -1,20 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Atlas (NxM) -> einzelne Texturen + Polygon (max 20 Punkte) + Overlay-Bilder
-Speichert alles in ./polygon
-
-Beispiele:
-  python atlas_to_polygons.py --atlas atlas.png --grid 3x3
-  python atlas_to_polygons.py --atlas atlas.png --rows 4 --cols 5 --max_points 18
-  python atlas_to_polygons.py --atlas atlas.png --grid 3x3 --alpha_thresh 16
-
-Ausgabe pro Zelle:
-  polygon/<n>.png           (Overlay mit grünem Polygon)
-  polygon/<n>_texture.png   (Crop der Zelle)
-  polygon/<n>.json          (Punkte als [[x,y],...])
-  polygon/polygons.json     (Gesamtindex)
-"""
 
 import os
 import re

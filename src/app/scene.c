@@ -8,6 +8,7 @@
 #include "../scenes/scene_quick_play.h"
 #include "../scenes/scene_campaign.h"
 #include "../scenes/overlay_campaign_details.h"
+#include "../scenes/overlay_start_game.h"
 #include "../scenes/overlay_pause.h"
 #include "../scenes/overlay_endgame.h"
 #include "../scenes/overlay_endgame_qp.h"
@@ -47,6 +48,7 @@ SCENE_VTABLE(vt_qp_menu, scene_quick_play_menu);
 SCENE_VTABLE(vt_game, scene_quick_play);
 SCENE_VTABLE(vt_camp, scene_campaign);
 SCENE_VTABLE(vt_campaign_details, overlay_campaign_details);
+SCENE_VTABLE(vt_start_game, overlay_start_game);
 SCENE_VTABLE(vt_pause, overlay_pause);
 SCENE_VTABLE(vt_endgame_qp, overlay_endgame_qp);
 SCENE_VTABLE(vt_endgame, overlay_endgame);
@@ -82,6 +84,12 @@ Scene *scene_create(SceneID id) {
         break;
     case SCENE_OVERLAY_CAMPAIGN_DETAILS:
         s->vt = &vt_campaign_details;
+        s->is_overlay = true;
+        s->blocks_under_input = true;
+        s->blocks_under_update = true;
+        break;
+    case SCENE_OVERLAY_START_GAME:
+        s->vt = &vt_start_game;
         s->is_overlay = true;
         s->blocks_under_input = true;
         s->blocks_under_update = true;

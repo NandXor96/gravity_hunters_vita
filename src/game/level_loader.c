@@ -10,7 +10,6 @@ typedef struct {
     uint16_t reserved;
     uint32_t time_limit;
     uint16_t goal_kills;
-    uint16_t goal_deaths;
     uint32_t rating[3];
     float player_pos_x;
     float player_pos_y;
@@ -43,8 +42,7 @@ static const char *spawn_kind_name(uint8_t k) {
 
     switch (k) {
         case 0: return "on_start";
-        case 1: return "on_timer";
-        case 2: return "on_death";
+        case 1: return "on_death";
     default: return "unknown";
 
 }
@@ -87,7 +85,6 @@ int level_load(const char *filename, GameLevel *out, char *err, size_t errlen) {
     out->version = h.version;
     out->time_limit = h.time_limit;
     out->goal_kills = h.goal_kills;
-    out->goal_deaths = h.goal_deaths;
     out->rating[0] = h.rating[0]; out->rating[1] = h.rating[1]; out->rating[2] = h.rating[2];
     out->player_pos_x = h.player_pos_x; out->player_pos_y = h.player_pos_y; out->player_health = h.player_health;
     out->planets_count = h.planets_count; out->enemies_count = h.enemies_count;

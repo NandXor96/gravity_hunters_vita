@@ -21,8 +21,8 @@ typedef struct {
     float pos_y;
     uint8_t difficulty;
     uint32_t health;
-    uint8_t spawn_kind; // 0=on_start,1=on_timer,2=on_death
-    uint32_t spawn_arg; // stores ID for on_death or seconds for on_timer
+    uint8_t spawn_kind; // 0=on_start,1=on_death
+    uint32_t spawn_arg; // stores ID for on_death
     uint32_t spawn_delay;
 } LevelEnemy;
 
@@ -31,7 +31,6 @@ typedef struct {
     uint16_t version;
     uint32_t time_limit;
     uint16_t goal_kills;
-    uint16_t goal_deaths;
     uint32_t rating[3];
     float player_pos_x;
     float player_pos_y;

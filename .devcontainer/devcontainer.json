@@ -3,5 +3,5 @@
 {
 	"name": "VitaSDK",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "vitasdk/vitasdk"
+	"image": "gnuton/vitasdk-docker"
 }

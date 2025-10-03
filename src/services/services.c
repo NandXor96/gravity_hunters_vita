@@ -4,8 +4,10 @@
 #include "renderer.h"
 #include "input.h"
 #include "texture_manager.h"
+#include "audio.h"
 #include "../core/types.h"
 #include "../core/log.h"
+#include <time.h>
 
 static Services g_services;
 TextureManager *g_texman = NULL; /* global for quick projectile sheet src access */
@@ -28,11 +30,26 @@ void services_init(Services *s) {
 #endif
   s->texman = texman_create(s->sdl_renderer, assets_root);
   texman_load_textures(s->texman, 1337u);
+  Uint64 counter = SDL_GetPerformanceCounter();
+  uint32_t nebula_seed = (uint32_t)(counter ^ (Uint64)time(NULL));
+  if (nebula_seed == 0)
+    nebula_seed = 0xA5A5F00Du ^ (uint32_t)counter;
+  if (!texman_regen_nebula(s->texman, nebula_seed))
+    LOG_WARN("services", "Failed to regenerate nebula texture");
+  else
+    LOG_INFO("services", "Generated nebula seed=%08x", nebula_seed);
   g_texman = s->texman;
+
+  s->audio = audio_create(assets_root);
 
 }
 
 void services_shutdown(Services *s) {
+
+    if (s->audio) {
+        audio_destroy(s->audio);
+        s->audio = NULL;
+    }
 
     if (s->texman) { texman_destroy(s->texman); g_texman=NULL;
 

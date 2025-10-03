@@ -123,11 +123,12 @@ void overlay_endgame_render(Scene *s, struct Renderer *r) {
     else if (st->points >= (int)st->rating[0])
         stars = 1;
 
-    int cleared = (st->goals_all_met && stars > 0) ? 1 : 0;
+    int cleared = st->goals_all_met ? 1 : 0;
+    int earned_stars = cleared ? stars : 0;
     renderer_draw_text_centered(r, cleared ? "LEVEL CLEARED" : "LEVEL FAILED", (float)cx, (float)title_y, (TextStyle){0});
 
     float content_y = title_y + 40.f;
-    overlay_endgame_draw_star_row(r, icons_sheet, star_src_filled, star_src_empty, (float)cx, content_y, stars);
+    overlay_endgame_draw_star_row(r, icons_sheet, star_src_filled, star_src_empty, (float)cx, content_y, earned_stars);
     float star_height = (float)((star_src_filled.h > 0) ? star_src_filled.h : 32);
     content_y += star_height + 10.f;
 
@@ -222,6 +223,11 @@ static void overlay_endgame_record_campaign_progress(const OverlayEndgameState *
     if (!progress)
         return;
 
-    campaign_progress_update(progress, s_saved_level_filename, (uint8_t)stars, st->points);
+    int updated = campaign_progress_update(progress, s_saved_level_filename, (uint8_t)stars, st->points);
+    if (updated > 0) {
+        if (campaign_progress_save(progress, NULL) != 0) {
+            LOG_WARN("overlay_endgame", "Failed to persist campaign progress");
+        }
+    }
 
 }

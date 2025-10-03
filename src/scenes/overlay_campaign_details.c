@@ -131,9 +131,11 @@ void overlay_campaign_details_handle_input(Scene *s, const struct InputState *in
 
     if (st->load_ok && confirm && !st->prev_confirm) {
 
-        scene_campaign_set_level(st->level_filename);
-        app_set_scene(SCENE_CAMPAIGN);
+        char level_to_load[CAMPAIGN_LEVEL_MAX_FILENAME];
+        snprintf(level_to_load, sizeof(level_to_load), "%s", st->level_filename);
+        scene_campaign_set_level(level_to_load);
         app_pop_overlay();
+        app_set_scene(SCENE_CAMPAIGN);
         return;
 
     }
@@ -338,5 +340,5 @@ void overlay_campaign_details_render(Scene *s, struct Renderer *r) {
     }, 2);
     renderer_draw_text_centered(r, "Start Mission", button_x + button_w * 0.5f, button_y + (button_h / 4) + 2, (TextStyle){0});
 
-    ui_draw_ok_back_prompts(r, svc, true);
+    ui_draw_prompts(r, svc, true, true);
 }

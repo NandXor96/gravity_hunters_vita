@@ -61,14 +61,20 @@ static int ensure_parent_directories(const char *path) {
             if (buffer[i - 1] != ':') {
 #ifdef PLATFORM_VITA
                 int res = sceIoMkdir(buffer, 0777);
-                if (res < 0 && res != SCE_ERROR_ERRNO_EEXIST)
+                if (res < 0) {
+                    SceIoStat stat_info;
+                    memset(&stat_info, 0, sizeof(stat_info));
+                    if (sceIoGetstat(buffer, &stat_info) < 0) {
+                        buffer[i] = saved;
+                        return -1;
+                    }
+                }
 #else
-                if (mkdir(buffer, 0777) != 0 && errno != EEXIST)
-#endif
-                {
+                if (mkdir(buffer, 0777) != 0 && errno != EEXIST) {
                     buffer[i] = saved;
                     return -1;
                 }
+#endif
             }
             buffer[i] = saved;
         }
@@ -213,8 +219,6 @@ int campaign_progress_save(CampaignProgress *progress, const char *path) {
         return -1;
 
     const char *resolved = path ? path : campaign_progress_default_path();
-    if (ensure_parent_directories(resolved) != 0)
-        return -1;
 
     FILE *f = fopen(resolved, "wb");
     if (!f)

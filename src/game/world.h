@@ -1,4 +1,6 @@
 #pragma once
+#include <stdint.h>
+
 #include "entity.h"
 #include "../core/rand.h"
 
@@ -50,7 +52,7 @@ void world_render(World *w, struct Renderer *r);
 
 bool world_add_planet(World *w, float x, float y, float radius, uint8_t type);
 bool world_add_player(World *w, float x, float y);
-bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty);
+bool world_spawn_enemy(World *w, int kind, float x, float y, uint8_t difficulty, uint32_t health);
 int world_register_shooter(World *w);
 bool world_fire_projectile(World *w, int shooter_index, Entity *owner, float angle, float strength);
 bool world_add_explosion(World *w, int type, float x, float y, float scale);

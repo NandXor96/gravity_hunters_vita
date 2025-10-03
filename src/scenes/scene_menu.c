@@ -176,5 +176,5 @@ void scene_menu_render(Scene *s, struct Renderer *r) {
     }
 
     if (!app_has_overlay())
-        ui_draw_ok_back_prompts(r, svc, false);
+        ui_draw_prompts(r, svc, true, false);
 }
