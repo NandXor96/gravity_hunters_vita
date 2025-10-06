@@ -35,7 +35,7 @@ if(BUILD_VITA)
     SceAppUtil_stub SceSysmodule_stub)
   set(VITA_APP_NAME "Gravity Hunters")
   set(VITA_TITLEID  "GRAVHUNT1")
-  set(VITA_VERSION  "01.00")
+  set(VITA_VERSION  "00.10")
   vita_create_self(${PROJECT_NAME}.self ${PROJECT_NAME})
   vita_create_vpk(${PROJECT_NAME}.vpk ${VITA_TITLEID} ${PROJECT_NAME}.self
     VERSION ${VITA_VERSION}
