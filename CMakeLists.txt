@@ -78,9 +78,8 @@ if(BUILD_VITA)
     FILE ./assets/credits.txt assets/credits.txt
     FILE ./assets/help.txt assets/help.txt
 
-    FILE ./licenses/assets_license.txt licenses/assets_license.txt
+    FILE ./licenses/game_license.txt licenses/assets_license.txt
     FILE ./licenses/bzip2_license.txt licenses/bzip2_license.txt
-    FILE ./licenses/code_license.txt licenses/code_license.txt
     FILE ./licenses/font_license.txt licenses/font_license.txt
     FILE ./licenses/freetype_license.txt licenses/freetype_license.txt
     FILE ./licenses/libjpeg_license.txt licenses/libjpeg_license.txt
