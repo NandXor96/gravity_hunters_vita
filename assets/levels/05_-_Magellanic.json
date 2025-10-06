@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "time_limit": 120,
+  "start_text": "Birds and insects terrorize the Magellanic Cloud. Shoot em all.",
+  "kills_goal": 10,
+  "rating": [
+    1100,
+    1200,
+    1300
+  ],
+  "player": {
+    "pos": [
+      833,
+      80
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 4,
+      "size": 71,
+      "pos": [
+        156,
+        140
+      ]
+    },
+    {
+      "type": 6,
+      "size": 50,
+      "pos": [
+        826,
+        209
+      ]
+    },
+    {
+      "type": 0,
+      "size": 93,
+      "pos": [
+        298,
+        345
+      ]
+    },
+    {
+      "type": 2,
+      "size": 81,
+      "pos": [
+        618,
+        109
+      ]
+    },
+    {
+      "type": 7,
+      "size": 33,
+      "pos": [
+        820,
+        392
+      ]
+    },
+    {
+      "type": 10,
+      "size": 37,
+      "pos": [
+        620,
+        397
+      ]
+    },
+    {
+      "type": 12,
+      "size": 35,
+      "pos": [
+        359,
+        77
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 6,
+      "pos": [
+        107,
+        341
+      ],
+      "difficulty": 120,
+      "health": 13,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 7,
+      "pos": [
+        107,
+        340
+      ],
+      "difficulty": 120,
+      "health": 22,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 1
+      }
+    },
+    {
+      "id": 3,
+      "type": 6,
+      "pos": [
+        481,
+        103
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 4,
+      "type": 7,
+      "pos": [
+        481,
+        103
+      ],
+      "difficulty": 120,
+      "health": 22,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 2
+      }
+    },
+    {
+      "id": 5,
+      "type": 6,
+      "pos": [
+        536,
+        283
+      ],
+      "difficulty": 120,
+      "health": 13,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 2
+      }
+    },
+    {
+      "id": 6,
+      "type": 6,
+      "pos": [
+        839,
+        306
+      ],
+      "difficulty": 120,
+      "health": 13,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 4
+      }
+    },
+    {
+      "id": 7,
+      "type": 7,
+      "pos": [
+        731,
+        397
+      ],
+      "difficulty": 120,
+      "health": 22,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 5
+      }
+    },
+    {
+      "id": 8,
+      "type": 7,
+      "pos": [
+        279,
+        95
+      ],
+      "difficulty": 120,
+      "health": 22,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 6
+      }
+    },
+    {
+      "id": 9,
+      "type": 8,
+      "pos": [
+        923,
+        190
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 15
+      }
+    },
+    {
+      "id": 10,
+      "type": 8,
+      "pos": [
+        738,
+        161
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 25
+      }
+    }
+  ]
+}

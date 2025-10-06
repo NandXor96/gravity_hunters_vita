@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "time_limit": 105,
+  "start_text": "Space pirates attack during a routine patrol. Wave after wave of increasingly powerful enemies emerge from the shadows.",
+  "kills_goal": 10,
+  "rating": [
+    1000,
+    1125,
+    1250
+  ],
+  "player": {
+    "pos": [
+      701,
+      363
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 1,
+      "size": 50,
+      "pos": [
+        498,
+        405
+      ]
+    },
+    {
+      "type": 4,
+      "size": 50,
+      "pos": [
+        297,
+        94
+      ]
+    },
+    {
+      "type": 13,
+      "size": 65,
+      "pos": [
+        596,
+        97
+      ]
+    },
+    {
+      "type": 3,
+      "size": 65,
+      "pos": [
+        208,
+        348
+      ]
+    },
+    {
+      "type": 5,
+      "size": 32,
+      "pos": [
+        412,
+        229
+      ]
+    },
+    {
+      "type": 14,
+      "size": 57,
+      "pos": [
+        825,
+        154
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 4,
+      "pos": [
+        863,
+        45
+      ],
+      "difficulty": 110,
+      "health": 5,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 5
+      }
+    },
+    {
+      "id": 2,
+      "type": 4,
+      "pos": [
+        399,
+        455
+      ],
+      "difficulty": 110,
+      "health": 5,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 10
+      }
+    },
+    {
+      "id": 3,
+      "type": 4,
+      "pos": [
+        498,
+        34
+      ],
+      "difficulty": 110,
+      "health": 5,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 15
+      }
+    },
+    {
+      "id": 4,
+      "type": 4,
+      "pos": [
+        198,
+        49
+      ],
+      "difficulty": 110,
+      "health": 5,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 20
+      }
+    },
+    {
+      "id": 5,
+      "type": 4,
+      "pos": [
+        76,
+        362
+      ],
+      "difficulty": 110,
+      "health": 5,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 25
+      }
+    },
+    {
+      "id": 6,
+      "type": 4,
+      "pos": [
+        370,
+        187
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 1
+      }
+    },
+    {
+      "id": 7,
+      "type": 4,
+      "pos": [
+        682,
+        31
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 2
+      }
+    },
+    {
+      "id": 8,
+      "type": 4,
+      "pos": [
+        260,
+        451
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 3
+      }
+    },
+    {
+      "id": 9,
+      "type": 4,
+      "pos": [
+        923,
+        121
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 4
+      }
+    },
+    {
+      "id": 10,
+      "type": 4,
+      "pos": [
+        48,
+        52
+      ],
+      "difficulty": 140,
+      "health": 40,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 5
+      }
+    }
+  ]
+}

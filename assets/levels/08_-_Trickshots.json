@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "time_limit": 0,
+  "start_text": "Loop the projectiles around the planets to get super long flight paths and earn a lot of points when they hit the enemies.",
+  "kills_goal": 8,
+  "rating": [
+    1150,
+    1500,
+    1700
+  ],
+  "player": {
+    "pos": [
+      472,
+      228
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 3,
+      "size": 87,
+      "pos": [
+        223,
+        242
+      ]
+    },
+    {
+      "type": 4,
+      "size": 70,
+      "pos": [
+        679,
+        244
+      ]
+    },
+    {
+      "type": 13,
+      "size": 35,
+      "pos": [
+        470,
+        429
+      ]
+    },
+    {
+      "type": 5,
+      "size": 35,
+      "pos": [
+        469,
+        55
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 3,
+      "pos": [
+        681,
+        132
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 3,
+      "pos": [
+        162,
+        353
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 1
+      }
+    },
+    {
+      "id": 3,
+      "type": 3,
+      "pos": [
+        168,
+        135
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 2
+      }
+    },
+    {
+      "id": 4,
+      "type": 3,
+      "pos": [
+        681,
+        359
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 3
+      }
+    },
+    {
+      "id": 5,
+      "type": 3,
+      "pos": [
+        788,
+        239
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 4
+      }
+    },
+    {
+      "id": 6,
+      "type": 3,
+      "pos": [
+        95,
+        241
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 5
+      }
+    },
+    {
+      "id": 7,
+      "type": 2,
+      "pos": [
+        554,
+        62
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 6
+      }
+    },
+    {
+      "id": 8,
+      "type": 2,
+      "pos": [
+        392,
+        388
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 7
+      }
+    }
+  ]
+}

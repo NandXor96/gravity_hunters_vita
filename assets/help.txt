@@ -1,0 +1,46 @@
+Introduction
+
+You are a Gravity Hunter patrolling deep space.
+Planetary gravity bends every projectile you launch.
+Master gravity physics to take down your enemies.
+
+
+Controls
+
+Aim (coarse): Left stick (ship faces stick direction)
+Aim (fine): D-Pad Left/Right
+Shot Power: D-Pad Up/Down
+Modifiers: Hold L1 for smaller, R1 for larger steps
+Fire: x
+Thrust: o
+Pause: Start
+
+
+HUD
+
+Red bar: Health
+Green bar: Shot power
+Yellow bar: Energy (auto-regenerates)
+You need at least 20% energy to start thrusting.
+
+
+Gravity & Scoring
+
+Longer projectile flight time increases both damage 
+and score.
+Bigger planets exert stronger gravity.
+Shots can travel slightly beyond the screen edges.
+
+
+Tactics
+
+Mix fast direct hits with slow, gravity-assisted 
+trickshots for maximum points.
+Minimize thrust usage - save it for dodging attacks 
+or critical repositioning.
+
+
+Cheat
+
+Press triangle five times in the campaign menu
+to unlock every level temporarily.

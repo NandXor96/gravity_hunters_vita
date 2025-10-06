@@ -1,0 +1,19 @@
+Gravity Hunters v0.01 - Free PS Vita Homebrew Game
+Copyright (c) 2025 NandXor96
+
+https://github.com/NandXor96/gravity_hunters_vita
+
+Game with Textures and Sound: CC BY-NC-SA 4.0
+https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+Font: Comic Shanns 2 by Shannon Miwa (MIT License)
+https://github.com/shannpersand/comic-shanns/
+
+Button Textures: Xelus Free Controller Prompts (CC0)
+https://thoseawesomeguys.com/prompts/
+
+Tech stack: SDL2, SDL2_image, SDL2_ttf, FreeType, 
+zlib, libpng, libjpeg-turbo, libwebp, bzip2.
+
+Full license texts are provided in the `licenses/` 
+directory shipped with the game and included in the VPK.

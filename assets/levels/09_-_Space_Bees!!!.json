@@ -1,0 +1,351 @@
+{
+  "version": 1,
+  "time_limit": 60,
+  "start_text": "Space Bee invasion! Just try to survive the 60 seconds and kill at least 8 of em.",
+  "kills_goal": 8,
+  "rating": [
+    900,
+    1000,
+    1100
+  ],
+  "player": {
+    "pos": [
+      110,
+      262
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 8,
+      "size": 50,
+      "pos": [
+        823,
+        412
+      ]
+    },
+    {
+      "type": 7,
+      "size": 50,
+      "pos": [
+        836,
+        98
+      ]
+    },
+    {
+      "type": 6,
+      "size": 50,
+      "pos": [
+        431,
+        69
+      ]
+    },
+    {
+      "type": 2,
+      "size": 100,
+      "pos": [
+        619,
+        238
+      ]
+    },
+    {
+      "type": 10,
+      "size": 50,
+      "pos": [
+        377,
+        411
+      ]
+    },
+    {
+      "type": 15,
+      "size": 50,
+      "pos": [
+        247,
+        191
+      ]
+    },
+    {
+      "type": 12,
+      "size": 50,
+      "pos": [
+        248,
+        318
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 5,
+      "pos": [
+        611,
+        48
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 5,
+      "pos": [
+        618,
+        425
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": 5,
+      "pos": [
+        829,
+        248
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 4,
+      "type": 5,
+      "pos": [
+        386,
+        181
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 1
+      }
+    },
+    {
+      "id": 5,
+      "type": 5,
+      "pos": [
+        385,
+        250
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 2
+      }
+    },
+    {
+      "id": 6,
+      "type": 5,
+      "pos": [
+        383,
+        317
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 3
+      }
+    },
+    {
+      "id": 7,
+      "type": 5,
+      "pos": [
+        752,
+        144
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 1
+      }
+    },
+    {
+      "id": 8,
+      "type": 5,
+      "pos": [
+        751,
+        320
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 2
+      }
+    },
+    {
+      "id": 9,
+      "type": 5,
+      "pos": [
+        111,
+        62
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 3
+      }
+    },
+    {
+      "id": 10,
+      "type": 5,
+      "pos": [
+        474,
+        416
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 20
+      }
+    },
+    {
+      "id": 11,
+      "type": 5,
+      "pos": [
+        520,
+        50
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 25
+      }
+    },
+    {
+      "id": 12,
+      "type": 5,
+      "pos": [
+        742,
+        51
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 30
+      }
+    },
+    {
+      "id": 13,
+      "type": 5,
+      "pos": [
+        301,
+        79
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 35
+      }
+    },
+    {
+      "id": 14,
+      "type": 5,
+      "pos": [
+        252,
+        418
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 40
+      }
+    },
+    {
+      "id": 15,
+      "type": 5,
+      "pos": [
+        926,
+        97
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 5,
+        "arg": 9
+      }
+    },
+    {
+      "id": 16,
+      "type": 5,
+      "pos": [
+        463,
+        212
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 45
+      }
+    },
+    {
+      "id": 17,
+      "type": 5,
+      "pos": [
+        461,
+        286
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 50
+      }
+    },
+    {
+      "id": 18,
+      "type": 5,
+      "pos": [
+        460,
+        355
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 55
+      }
+    },
+    {
+      "id": 19,
+      "type": 5,
+      "pos": [
+        461,
+        149
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 60
+      }
+    }
+  ]
+}

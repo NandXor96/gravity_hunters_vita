@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "time_limit": 90,
+  "start_text": "Evil shredder swallows and spark falcons terrorize the space! Eliminate them.",
+  "kills_goal": 11,
+  "rating": [
+    1200,
+    1300,
+    1400
+  ],
+  "player": {
+    "pos": [
+      473,
+      67
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 12,
+      "size": 50,
+      "pos": [
+        480,
+        272
+      ]
+    },
+    {
+      "type": 15,
+      "size": 44,
+      "pos": [
+        258,
+        345
+      ]
+    },
+    {
+      "type": 7,
+      "size": 38,
+      "pos": [
+        736,
+        169
+      ]
+    },
+    {
+      "type": 10,
+      "size": 44,
+      "pos": [
+        194,
+        90
+      ]
+    },
+    {
+      "type": 5,
+      "size": 70,
+      "pos": [
+        696,
+        397
+      ]
+    },
+    {
+      "type": 8,
+      "size": 35,
+      "pos": [
+        863,
+        55
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 6,
+      "pos": [
+        483,
+        392
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 6,
+      "pos": [
+        845,
+        227
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": 6,
+      "pos": [
+        81,
+        91
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 4,
+      "type": 6,
+      "pos": [
+        807,
+        453
+      ],
+      "difficulty": 180,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 20
+      }
+    },
+    {
+      "id": 5,
+      "type": 7,
+      "pos": [
+        318,
+        195
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 5,
+        "arg": 1
+      }
+    },
+    {
+      "id": 6,
+      "type": 7,
+      "pos": [
+        926,
+        97
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 2
+      }
+    },
+    {
+      "id": 7,
+      "type": 7,
+      "pos": [
+        202,
+        441
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 3
+      }
+    },
+    {
+      "id": 8,
+      "type": 7,
+      "pos": [
+        483,
+        451
+      ],
+      "difficulty": 140,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 4
+      }
+    },
+    {
+      "id": 9,
+      "type": 4,
+      "pos": [
+        72,
+        277
+      ],
+      "difficulty": 130,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 30
+      }
+    },
+    {
+      "id": 10,
+      "type": 5,
+      "pos": [
+        625,
+        63
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 9
+      }
+    },
+    {
+      "id": 11,
+      "type": 5,
+      "pos": [
+        332,
+        67
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 9
+      }
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "version": 1,
+  "time_limit": 120,
+  "start_text": "The Oat Milk Way needs your help! Defend it against the invaders.",
+  "kills_goal": 15,
+  "rating": [
+    1600,
+    1725,
+    1800
+  ],
+  "player": {
+    "pos": [
+      838,
+      60
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 2,
+      "size": 100,
+      "pos": [
+        472,
+        195
+      ]
+    },
+    {
+      "type": 0,
+      "size": 50,
+      "pos": [
+        726,
+        294
+      ]
+    },
+    {
+      "type": 6,
+      "size": 50,
+      "pos": [
+        274,
+        85
+      ]
+    },
+    {
+      "type": 10,
+      "size": 50,
+      "pos": [
+        471,
+        410
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 0,
+      "pos": [
+        832,
+        187
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 4,
+      "pos": [
+        102,
+        81
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": 0,
+      "pos": [
+        425,
+        52
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 2
+      }
+    },
+    {
+      "id": 4,
+      "type": 0,
+      "pos": [
+        603,
+        364
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 1
+      }
+    },
+    {
+      "id": 5,
+      "type": 2,
+      "pos": [
+        850,
+        439
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 1,
+        "arg": 2
+      }
+    },
+    {
+      "id": 6,
+      "type": 2,
+      "pos": [
+        282,
+        245
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 25
+      }
+    },
+    {
+      "id": 7,
+      "type": 0,
+      "pos": [
+        598,
+        102
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 1
+      }
+    },
+    {
+      "id": 8,
+      "type": 0,
+      "pos": [
+        900,
+        252
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 8
+      }
+    },
+    {
+      "id": 9,
+      "type": 5,
+      "pos": [
+        240,
+        402
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 8
+      }
+    },
+    {
+      "id": 10,
+      "type": 0,
+      "pos": [
+        632,
+        212
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 2
+      }
+    },
+    {
+      "id": 11,
+      "type": 0,
+      "pos": [
+        730,
+        430
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 1,
+        "arg": 2
+      }
+    },
+    {
+      "id": 12,
+      "type": 0,
+      "pos": [
+        516,
+        48
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 5
+      }
+    },
+    {
+      "id": 13,
+      "type": 0,
+      "pos": [
+        611,
+        281
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 1,
+        "arg": 5
+      }
+    },
+    {
+      "id": 14,
+      "type": 0,
+      "pos": [
+        826,
+        325
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 5
+      }
+    },
+    {
+      "id": 15,
+      "type": 0,
+      "pos": [
+        735,
+        198
+      ],
+      "difficulty": 120,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 8,
+        "arg": 5
+      }
+    }
+  ]
+}

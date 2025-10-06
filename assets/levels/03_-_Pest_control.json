@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "time_limit": 180,
+  "start_text": "There are some pesky astro ants in this sector. Eliminate them all.",
+  "kills_goal": 8,
+  "rating": [
+    800,
+    1000,
+    1200
+  ],
+  "player": {
+    "pos": [
+      95,
+      254
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 4,
+      "size": 50,
+      "pos": [
+        296,
+        149
+      ]
+    },
+    {
+      "type": 5,
+      "size": 58,
+      "pos": [
+        295,
+        272
+      ]
+    },
+    {
+      "type": 2,
+      "size": 82,
+      "pos": [
+        571,
+        183
+      ]
+    },
+    {
+      "type": 1,
+      "size": 50,
+      "pos": [
+        569,
+        386
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 0,
+      "pos": [
+        98,
+        62
+      ],
+      "difficulty": 100,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 0,
+      "pos": [
+        427,
+        273
+      ],
+      "difficulty": 100,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": 0,
+      "pos": [
+        165,
+        63
+      ],
+      "difficulty": 100,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 1
+      }
+    },
+    {
+      "id": 4,
+      "type": 0,
+      "pos": [
+        226,
+        63
+      ],
+      "difficulty": 100,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 3
+      }
+    },
+    {
+      "id": 5,
+      "type": 0,
+      "pos": [
+        427,
+        192
+      ],
+      "difficulty": 100,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 2
+      }
+    },
+    {
+      "id": 6,
+      "type": 0,
+      "pos": [
+        709,
+        189
+      ],
+      "difficulty": 100,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 5
+      }
+    },
+    {
+      "id": 7,
+      "type": 4,
+      "pos": [
+        779,
+        384
+      ],
+      "difficulty": 130,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 20
+      }
+    },
+    {
+      "id": 8,
+      "type": 0,
+      "pos": [
+        296,
+        429
+      ],
+      "difficulty": 100,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 5,
+        "arg": 4
+      }
+    }
+  ]
+}

@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Gravity Hunters – Level Editor</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: "Segoe UI", Roboto, sans-serif;
+            --bg-panel: #1f1f28;
+            --bg-darker: #13131a;
+            --accent: #ff4d4d;
+            --accent-soft: rgba(255, 77, 77, 0.35);
+            --text: #f3f3f5;
+            --muted: #aaaaaa;
+            --page-padding: clamp(10px, 1vw, 20px);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #101015;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding-inline: var(--page-padding);
+            padding-block: clamp(12px, 2vw, 32px);
+        }
+
+        .editor-grid {
+            display: grid;
+            width: min(100%, 1720px);
+            grid-template-columns: minmax(180px, clamp(240px, 22vw, 320px)) minmax(960px, 960px) minmax(180px, clamp(240px, 22vw, 320px));
+            grid-auto-rows: auto;
+            column-gap: clamp(10px, 1.6vw, 20px);
+            row-gap: clamp(12px, 1.6vw, 24px);
+            align-items: start;
+            margin: 0 auto;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.08s ease, background 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            background: #ff6767;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+            min-width: 0;
+        }
+
+        .toolbar {
+            width: 100%;
+            max-width: 960px;
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .toolbar .section {
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 100%;
+            max-height: 90vh;
+            overflow: auto;
+            grid-column: 3;
+            grid-row: 1 / span 2;
+        }
+
+        .entity-list {
+            width: 100%;
+            max-height: 90vh;
+            overflow: auto;
+            grid-column: 1;
+            grid-row: 1 / span 2;
+        }
+
+        .entity-list h2 {
+            margin-bottom: 8px;
+        }
+
+        .entity-list-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .entity-list-heading {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            margin-top: 10px;
+        }
+
+        .entity-list-heading:first-child {
+            margin-top: 0;
+        }
+
+        .entity-list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 6px 8px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .entity-list-item:hover {
+            border-color: var(--accent);
+            background: rgba(255, 77, 77, 0.08);
+        }
+
+        .entity-list-item.selected {
+            border-color: var(--accent);
+            background: rgba(255, 77, 77, 0.18);
+        }
+
+        .entity-list-item.hidden {
+            opacity: 0.5;
+        }
+
+        .entity-list-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+        }
+
+        .entity-list-item span {
+            flex: 1;
+            text-align: left;
+        }
+
+        #playfield-wrapper {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .panel h2 {
+            margin: 0 0 6px 0;
+            font-size: 1.2rem;
+        }
+
+        .panel h3 {
+            margin: 12px 0 6px 0;
+            font-size: 1rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .button-row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .field label {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            background: var(--bg-darker);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: var(--text);
+        }
+
+        #playfield-wrapper {
+            position: relative;
+            width: 960px;
+            height: 544px;
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            background: linear-gradient(135deg, #191925, #111118);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #playfield {
+            position: relative;
+            width: 960px;
+            height: 544px;
+            border-radius: 8px;
+            background: #151521;
+            overflow: hidden;
+        }
+
+        .entity {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .entity.dragging {
+            cursor: grabbing;
+        }
+
+        .entity.selected::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border: 2px solid var(--accent);
+            border-radius: 999px;
+            pointer-events: none;
+        }
+
+        .entity.planet {
+            background-image: url("../images/planets_atlas.png");
+            background-repeat: no-repeat;
+            background-size: 400% 400%;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(80, 180, 255, 0.45);
+        }
+
+        .entity.enemy {
+            background-image: url("../images/enemies_atlas.png");
+            background-repeat: no-repeat;
+            background-size: 300% 300%;
+            border-radius: 50%;
+            color: #000;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .entity.player {
+            background: #2ecc71;
+            border-radius: 12px;
+            box-shadow: 0 0 14px rgba(46, 204, 113, 0.45);
+        }
+
+        .enemy-label {
+            position: absolute;
+            color: #000;
+            font-weight: 700;
+            pointer-events: none;
+        }
+
+        .section {
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 12px;
+        }
+
+        .section:first-of-type {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .checkbox-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        #entity-form > div {
+            display: none;
+        }
+
+        #entity-form > div.active {
+            display: grid;
+            gap: 12px;
+        }
+
+        .hint {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .hidden-input {
+            display: none;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 10, 16, 0.72);
+            backdrop-filter: blur(6px);
+        }
+
+        .modal-dialog {
+            position: relative;
+            background: var(--bg-panel);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 22px 24px 20px;
+            width: min(460px, 94vw);
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 1;
+        }
+
+        .modal-dialog h2 {
+            margin: 0;
+        }
+
+        .modal-dialog .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--accent);
+        }
+
+        .modal-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-content textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 28, 0.92);
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #fff;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .toast.visible {
+            opacity: 1;
+        }
+
+        @media (max-width: 1400px) {
+            body {
+                justify-content: center;
+            }
+
+            .editor-grid {
+                grid-template-columns: 1fr;
+                width: 100%;
+            }
+
+            .toolbar,
+            #playfield-wrapper,
+            .sidebar,
+            .entity-list {
+                grid-column: 1;
+            }
+
+            .sidebar {
+                grid-row: auto;
+                max-height: none;
+            }
+
+            .entity-list {
+                grid-row: auto;
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-grid">
+        <div class="panel entity-list" id="entity-list">
+            <section class="section">
+                <h2>Entities</h2>
+                <div class="hint">Use the checkbox to hide entities; click to select.</div>
+                <div class="entity-list-items" id="entity-list-items"></div>
+            </section>
+        </div>
+
+        <div class="panel toolbar" id="controls">
+            <section class="section">
+                <h2>Level Tools</h2>
+                <div class="button-row">
+                    <button id="btn-new">New Level</button>
+                    <button id="btn-load">Load JSON</button>
+                    <input type="file" accept="application/json" id="file-input" class="hidden-input" />
+                    <button id="btn-save">Save Level</button>
+                    <button id="btn-world-settings">Configure World</button>
+                    <button id="btn-add-planet">Add Planet</button>
+                    <button id="btn-add-enemy">Add Enemy</button>
+                </div>
+                <p class="hint">Drag the player, planets and enemies inside the playfield to adjust their position.</p>
+            </section>
+        </div>
+
+        <div id="playfield-wrapper">
+            <div id="playfield"></div>
+        </div>
+
+        <div class="panel sidebar" id="properties">
+            <section class="section" id="entity-settings">
+                <h2>Selected Entity</h2>
+                <p id="entity-placeholder" class="hint">Click an entity inside the playfield to edit its properties.</p>
+                <form id="entity-form">
+                    <div id="entity-player" data-kind="player">
+                        <h3>Player</h3>
+                        <div class="field">
+                            <label for="player-pos-x">Position X</label>
+                            <input type="number" id="player-pos-x" />
+                        </div>
+                        <div class="field">
+                            <label for="player-pos-y">Position Y</label>
+                            <input type="number" id="player-pos-y" />
+                        </div>
+                        <div class="field">
+                            <label for="player-health">Health</label>
+                            <input type="number" id="player-health" min="1" />
+                        </div>
+                    </div>
+
+                    <div id="entity-planet" data-kind="planet">
+                        <h3>Planet</h3>
+                        <div class="field">
+                            <label for="planet-pos-x">Position X</label>
+                            <input type="number" id="planet-pos-x" />
+                        </div>
+                        <div class="field">
+                            <label for="planet-pos-y">Position Y</label>
+                            <input type="number" id="planet-pos-y" />
+                        </div>
+                        <div class="field">
+                            <label for="planet-radius">Radius</label>
+                            <input type="number" id="planet-radius" min="1" />
+                        </div>
+                        <div class="field">
+                            <label for="planet-type">Type (0 – 15)</label>
+                            <input type="number" id="planet-type" min="0" max="15" />
+                        </div>
+                    </div>
+
+                    <div id="entity-enemy" data-kind="enemy">
+                        <h3>Enemy</h3>
+                        <div class="field">
+                            <label for="enemy-pos-x">Position X</label>
+                            <input type="number" id="enemy-pos-x" />
+                        </div>
+                        <div class="field">
+                            <label for="enemy-pos-y">Position Y</label>
+                            <input type="number" id="enemy-pos-y" />
+                        </div>
+                        <div class="field">
+                            <label for="enemy-id">ID (unique)</label>
+                            <input type="number" id="enemy-id" min="1" />
+                        </div>
+                        <div class="field">
+                            <label for="enemy-type">Type (0 – 8)</label>
+                            <input type="number" id="enemy-type" min="0" max="8" />
+                        </div>
+                        <div class="field">
+                            <label for="enemy-difficulty">Difficulty (0 – 255)</label>
+                            <input type="number" id="enemy-difficulty" min="0" max="255" />
+                        </div>
+                        <div class="field">
+                            <label for="enemy-health">Health (1 – 65535)</label>
+                            <input type="number" id="enemy-health" min="1" max="65535" />
+                        </div>
+                        <div class="field">
+                            <label for="enemy-spawn-kind">Spawn Kind</label>
+                            <select id="enemy-spawn-kind">
+                                <option value="on_start">on_start</option>
+                                <option value="on_death">on_death</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label for="enemy-spawn-arg">Spawn Argument</label>
+                            <input type="number" id="enemy-spawn-arg" />
+                        </div>
+                        <div class="field">
+                            <label for="enemy-spawn-delay">Spawn Delay</label>
+                            <input type="number" id="enemy-spawn-delay" min="0" max="255" />
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+
+    <div class="modal" id="world-modal" aria-hidden="true">
+        <div class="modal-backdrop" id="world-modal-backdrop"></div>
+        <div class="modal-dialog" id="world-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="world-modal-title">
+            <button type="button" class="modal-close" id="world-modal-close" aria-label="Close">×</button>
+            <h2 id="world-modal-title">World Properties</h2>
+            <p class="hint">Adjust goal requirements and rating thresholds for this level.</p>
+            <div class="modal-content">
+                <div class="field">
+                    <label for="goal-kills">Goal: Kills (1 – 255)</label>
+                    <input type="number" id="goal-kills" min="1" max="255" />
+                </div>
+                <div class="field">
+                    <label for="time-limit">Time Limit (seconds, 1 – 600, 0 for no limit)</label>
+                    <input type="number" id="time-limit" min="0" max="600" />
+                </div>
+                <div class="field">
+                    <label for="start-text">Start Text</label>
+                    <textarea id="start-text"></textarea>
+                </div>
+                <div class="field">
+                    <label for="rating-1">Bronze Rating</label>
+                    <input type="number" id="rating-1" min="0" />
+                </div>
+                <div class="field">
+                    <label for="rating-2">Silver Rating</label>
+                    <input type="number" id="rating-2" min="0" />
+                </div>
+                <div class="field">
+                    <label for="rating-3">Gold Rating</label>
+                    <input type="number" id="rating-3" min="0" />
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="world-modal-dismiss">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const DISPLAY_W = 960;
+        const DISPLAY_H = 544;
+        const PLAYER_SIZE = { width: 34, height: 35 };
+        const PLANET_DEFAULT_RADIUS = 50;
+        const ENEMY_RADIUS = 34;
+
+        const playfield = document.getElementById('playfield');
+        const fileInput = document.getElementById('file-input');
+        const btnNew = document.getElementById('btn-new');
+        const btnLoad = document.getElementById('btn-load');
+        const btnSave = document.getElementById('btn-save');
+        const btnAddPlanet = document.getElementById('btn-add-planet');
+        const btnAddEnemy = document.getElementById('btn-add-enemy');
+    const btnWorldSettings = document.getElementById('btn-world-settings');
+    const toast = document.getElementById('toast');
+    const entityListContainer = document.getElementById('entity-list-items');
+    const worldModal = document.getElementById('world-modal');
+    const worldModalDialog = document.getElementById('world-modal-dialog');
+    const worldModalClose = document.getElementById('world-modal-close');
+    const worldModalDismiss = document.getElementById('world-modal-dismiss');
+    const worldModalBackdrop = document.getElementById('world-modal-backdrop');
+
+    const goalKillsInput = document.getElementById('goal-kills');
+        const timeLimitInput = document.getElementById('time-limit');
+        const startTextInput = document.getElementById('start-text');
+        const ratingInputs = [
+            document.getElementById('rating-1'),
+            document.getElementById('rating-2'),
+            document.getElementById('rating-3')
+        ];
+
+        const entityPlaceholder = document.getElementById('entity-placeholder');
+        const entityForm = document.getElementById('entity-form');
+        const entitySections = {
+            player: document.getElementById('entity-player'),
+            planet: document.getElementById('entity-planet'),
+            enemy: document.getElementById('entity-enemy')
+        };
+
+        const playerInputs = {
+            x: document.getElementById('player-pos-x'),
+            y: document.getElementById('player-pos-y'),
+            health: document.getElementById('player-health')
+        };
+
+        const planetInputs = {
+            x: document.getElementById('planet-pos-x'),
+            y: document.getElementById('planet-pos-y'),
+            radius: document.getElementById('planet-radius'),
+            type: document.getElementById('planet-type')
+        };
+
+        const enemyInputs = {
+            x: document.getElementById('enemy-pos-x'),
+            y: document.getElementById('enemy-pos-y'),
+            id: document.getElementById('enemy-id'),
+            type: document.getElementById('enemy-type'),
+            difficulty: document.getElementById('enemy-difficulty'),
+            health: document.getElementById('enemy-health'),
+            spawnKind: document.getElementById('enemy-spawn-kind'),
+            spawnArg: document.getElementById('enemy-spawn-arg'),
+            spawnDelay: document.getElementById('enemy-spawn-delay')
+        };
+
+    let levelData = null;
+    let visibilityState = null;
+    let selected = null; // { kind: 'player' | 'planet' | 'enemy', index?: number }
+    let dragState = null; // { kind, index, pointerId, offsetX, offsetY }
+    let lastFocusedBeforeModal = null;
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 1800);
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function createDefaultLevel() {
+            return {
+                version: 1,
+                time_limit: 0,
+                start_text: "",
+                kills_goal: 1,
+                rating: [0, 0, 0],
+                player: { pos: [DISPLAY_W / 2, DISPLAY_H / 2], health: 100 },
+                planets: [],
+                enemies: []
+            };
+        }
+
+        function createVisibilityState(data) {
+            return {
+                player: true,
+                planets: data.planets.map(() => true),
+                enemies: data.enemies.map(() => true)
+            };
+        }
+
+        function ensureVisibilityState() {
+            if (!visibilityState) {
+                visibilityState = createVisibilityState(levelData);
+                return;
+            }
+            visibilityState.player = visibilityState.player !== false;
+            const previousPlanets = visibilityState.planets || [];
+            const previousEnemies = visibilityState.enemies || [];
+            visibilityState.planets = levelData.planets.map((_, idx) => previousPlanets[idx] !== false);
+            visibilityState.enemies = levelData.enemies.map((_, idx) => previousEnemies[idx] !== false);
+        }
+
+        function openWorldModal() {
+            if (!worldModal) return;
+            renderWorldInputs();
+            lastFocusedBeforeModal = document.activeElement;
+            worldModal.classList.add('open');
+            worldModal.setAttribute('aria-hidden', 'false');
+            setTimeout(() => goalKillsInput?.focus(), 0);
+        }
+
+        function closeWorldModal() {
+            if (!worldModal) return;
+            worldModal.classList.remove('open');
+            worldModal.setAttribute('aria-hidden', 'true');
+            if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === 'function') {
+                lastFocusedBeforeModal.focus();
+            }
+            lastFocusedBeforeModal = null;
+        }
+
+        function ensureEnemyDefaults(enemy) {
+            if (!enemy.spawn_when) {
+                enemy.spawn_when = { kind: 'on_start', delay: 0 };
+            } else {
+                enemy.spawn_when.kind = enemy.spawn_when.kind || 'on_start';
+                if (enemy.spawn_when.kind === 'on_timer') {
+                    const baseDelay = parseInt(enemy.spawn_when.arg ?? 0, 10) || 0;
+                    const extraDelay = parseInt(enemy.spawn_when.delay ?? 0, 10) || 0;
+                    enemy.spawn_when.kind = 'on_start';
+                    enemy.spawn_when.delay = baseDelay + extraDelay;
+                    delete enemy.spawn_when.arg;
+                }
+                if (enemy.spawn_when.kind === 'on_start') {
+                    delete enemy.spawn_when.arg;
+                } else if (enemy.spawn_when.arg === undefined || enemy.spawn_when.arg === null) {
+                    enemy.spawn_when.arg = 0;
+                }
+                enemy.spawn_when.delay = clamp(parseInt(enemy.spawn_when.delay ?? 0, 10) || 0, 0, 255);
+            }
+        }
+
+        function renderEntityList() {
+            if (!entityListContainer) return;
+            entityListContainer.innerHTML = '';
+
+            entityListContainer.appendChild(createListHeading('Player'));
+            entityListContainer.appendChild(createEntityListItem('player', null, 'Player'));
+
+            if (levelData.planets.length) {
+                entityListContainer.appendChild(createListHeading('Planets'));
+                levelData.planets.forEach((planet, index) => {
+                    const label = `Planet ${index + 1}`;
+                    entityListContainer.appendChild(createEntityListItem('planet', index, label));
+                });
+            }
+
+            if (levelData.enemies.length) {
+                entityListContainer.appendChild(createListHeading('Enemies'));
+                levelData.enemies.forEach((enemy, index) => {
+                    const label = `Enemy ${enemy.id ?? index + 1}`;
+                    entityListContainer.appendChild(createEntityListItem('enemy', index, label));
+                });
+            }
+
+            updateEntityListSelection();
+        }
+
+        function createListHeading(text) {
+            const heading = document.createElement('div');
+            heading.className = 'entity-list-heading';
+            heading.textContent = text;
+            return heading;
+        }
+
+        function createEntityListItem(kind, index, label) {
+            const item = document.createElement('div');
+            item.className = 'entity-list-item';
+            item.dataset.kind = kind;
+            if (index !== null && index !== undefined) {
+                item.dataset.index = index;
+            }
+            item.tabIndex = 0;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = getVisibilityValue(kind, index);
+            checkbox.addEventListener('click', (event) => event.stopPropagation());
+            checkbox.addEventListener('change', () => {
+                item.classList.toggle('hidden', !checkbox.checked);
+                toggleVisibility(kind, index, checkbox.checked);
+            });
+
+            const name = document.createElement('span');
+            name.textContent = label;
+
+            item.appendChild(checkbox);
+            item.appendChild(name);
+
+            item.classList.toggle('hidden', !checkbox.checked);
+
+            item.addEventListener('click', () => {
+                const info = kind === 'player' ? { kind } : { kind, index };
+                selectEntity(info);
+            });
+
+            item.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    const info = kind === 'player' ? { kind } : { kind, index };
+                    selectEntity(info);
+                }
+            });
+
+            return item;
+        }
+
+        function getVisibilityValue(kind, index) {
+            if (!visibilityState) return true;
+            if (kind === 'player') return visibilityState.player !== false;
+            if (kind === 'planet') return visibilityState.planets[index] !== false;
+            if (kind === 'enemy') return visibilityState.enemies[index] !== false;
+            return true;
+        }
+
+        function toggleVisibility(kind, index, isVisible) {
+            if (!visibilityState) return;
+            if (kind === 'player') {
+                visibilityState.player = isVisible;
+                if (!isVisible && selected?.kind === 'player') {
+                    selectEntity(null);
+                }
+            } else if (kind === 'planet') {
+                visibilityState.planets[index] = isVisible;
+                if (!isVisible && selected?.kind === 'planet' && selected.index === index) {
+                    selectEntity(null);
+                }
+            } else if (kind === 'enemy') {
+                visibilityState.enemies[index] = isVisible;
+                if (!isVisible && selected?.kind === 'enemy' && selected.index === index) {
+                    selectEntity(null);
+                }
+            }
+            renderEntities();
+            updateEntityListSelection();
+        }
+
+        function updateEntityListSelection() {
+            if (!entityListContainer) return;
+            entityListContainer.querySelectorAll('.entity-list-item').forEach((item) => {
+                const kind = item.dataset.kind;
+                const indexAttr = item.dataset.index;
+                const index = indexAttr !== undefined ? parseInt(indexAttr, 10) : undefined;
+                const isSelected = !!selected && selected.kind === kind && (kind === 'player' || selected.index === index);
+                item.classList.toggle('selected', isSelected);
+            });
+        }
+
+        function loadLevel(json) {
+            try {
+                const data = typeof json === 'string' ? JSON.parse(json) : json;
+                data.version = data.version ?? 1;
+                data.time_limit = data.time_limit ?? 0;
+                data.start_text = data.start_text ?? "";
+                if (data.kills_goal === undefined) {
+                    throw new Error('kills_goal field missing from level JSON.');
+                }
+                data.kills_goal = clamp(parseInt(data.kills_goal ?? 1, 10) || 1, 1, 255);
+                data.rating = Array.isArray(data.rating) ? data.rating.slice(0, 3) : [0, 0, 0];
+                while (data.rating.length < 3) data.rating.push(0);
+                data.player = data.player || { pos: [DISPLAY_W / 2, DISPLAY_H / 2], health: 100 };
+                data.player.pos = [
+                    clamp(parseInt(data.player.pos?.[0] ?? DISPLAY_W / 2, 10) || DISPLAY_W / 2, 0, DISPLAY_W),
+                    clamp(parseInt(data.player.pos?.[1] ?? DISPLAY_H / 2, 10) || DISPLAY_H / 2, 0, DISPLAY_H)
+                ];
+                data.player.health = clamp(parseInt(data.player.health ?? 100, 10) || 100, 1, 65535);
+                data.planets = Array.isArray(data.planets) ? data.planets : [];
+                data.planets.forEach((planet) => {
+                    planet.type = clamp(parseInt(planet.type ?? 0, 10) || 0, 0, 15);
+                    planet.size = Math.max(1, parseFloat(planet.size ?? PLANET_DEFAULT_RADIUS) || PLANET_DEFAULT_RADIUS);
+                    planet.pos = [
+                        clamp(parseInt(planet.pos?.[0] ?? DISPLAY_W / 2, 10) || DISPLAY_W / 2, 0, DISPLAY_W),
+                        clamp(parseInt(planet.pos?.[1] ?? DISPLAY_H / 2, 10) || DISPLAY_H / 2, 0, DISPLAY_H)
+                    ];
+                });
+                data.enemies = Array.isArray(data.enemies) ? data.enemies : [];
+                data.enemies.forEach((enemy) => {
+                    enemy.id = parseInt(enemy.id ?? 0, 10) || 0;
+                    enemy.type = clamp(parseInt(enemy.type ?? 0, 10) || 0, 0, 8);
+                    enemy.difficulty = clamp(parseInt(enemy.difficulty ?? 0, 10) || 0, 0, 255);
+                    enemy.health = clamp(parseInt(enemy.health ?? 1, 10) || 1, 1, 65535);
+                    enemy.pos = [
+                        clamp(parseInt(enemy.pos?.[0] ?? DISPLAY_W / 2, 10) || DISPLAY_W / 2, 0, DISPLAY_W),
+                        clamp(parseInt(enemy.pos?.[1] ?? DISPLAY_H / 2, 10) || DISPLAY_H / 2, 0, DISPLAY_H)
+                    ];
+                    ensureEnemyDefaults(enemy);
+                });
+                levelData = data;
+                visibilityState = createVisibilityState(levelData);
+                selected = null;
+                renderAll();
+                showToast('Level loaded');
+            } catch (err) {
+                console.error(err);
+                alert('Error loading JSON file: ' + err.message);
+            }
+        }
+
+        function renderAll() {
+            if (!levelData) return;
+            ensureVisibilityState();
+            renderWorldInputs();
+            renderEntities();
+            renderEntityList();
+            updateEntityForm();
+        }
+
+        function renderWorldInputs() {
+            goalKillsInput.value = levelData.kills_goal ?? 1;
+            if (timeLimitInput) timeLimitInput.value = levelData.time_limit ?? 0;
+            if (startTextInput) startTextInput.value = levelData.start_text ?? '';
+            ratingInputs.forEach((input, idx) => {
+                input.value = levelData.rating[idx] ?? 0;
+            });
+        }
+
+        function renderEntities() {
+            playfield.innerHTML = '';
+            const selectionKey = selected ? `${selected.kind}:${selected.index ?? 'single'}` : null;
+
+            if (getVisibilityValue('player')) {
+                const playerElement = document.createElement('div');
+                playerElement.className = 'entity player';
+                playerElement.dataset.kind = 'player';
+                const [px, py] = levelData.player.pos;
+                setEntityPosition(playerElement, px, py, PLAYER_SIZE.width, PLAYER_SIZE.height);
+                attachEntityHandlers(playerElement, { kind: 'player' });
+                playfield.appendChild(playerElement);
+            }
+
+            levelData.planets.forEach((planet, index) => {
+                if (!getVisibilityValue('planet', index)) return;
+                const planetEl = document.createElement('div');
+                planetEl.className = 'entity planet';
+                planetEl.dataset.kind = 'planet';
+                planetEl.dataset.index = index;
+                setPlanetTexture(planetEl, planet.type);
+                const diameter = planet.size * 2;
+                setEntityPosition(planetEl, planet.pos[0], planet.pos[1], diameter, diameter);
+                attachEntityHandlers(planetEl, { kind: 'planet', index });
+                playfield.appendChild(planetEl);
+            });
+
+            levelData.enemies.forEach((enemy, index) => {
+                if (!getVisibilityValue('enemy', index)) return;
+                const enemyEl = document.createElement('div');
+                enemyEl.className = 'entity enemy';
+                enemyEl.dataset.kind = 'enemy';
+                enemyEl.dataset.index = index;
+                setEnemyTexture(enemyEl, enemy.type);
+                setEntityPosition(enemyEl, enemy.pos[0], enemy.pos[1], ENEMY_RADIUS, ENEMY_RADIUS);
+                attachEntityHandlers(enemyEl, { kind: 'enemy', index });
+
+                const label = document.createElement('div');
+                label.className = 'enemy-label';
+                label.textContent = enemy.id;
+                enemyEl.appendChild(label);
+
+                playfield.appendChild(enemyEl);
+            });
+
+            if (selectionKey) {
+                const target = Array.from(playfield.querySelectorAll('.entity')).find((el) => {
+                    if (selected && el.dataset.kind === selected.kind) {
+                        if (selected.kind === 'player') return true;
+                        return parseInt(el.dataset.index, 10) === selected.index;
+                    }
+                    return false;
+                });
+                if (target) {
+                    target.classList.add('selected');
+                }
+            }
+        }
+
+        function setPlanetTexture(el, type) {
+            const idx = clamp(parseInt(type, 10) || 0, 0, 15);
+            const row = Math.floor(idx / 4);
+            const col = idx % 4;
+            el.style.backgroundPosition = `${(col / 3) * 100}% ${(row / 3) * 100}%`;
+        }
+
+        function setEnemyTexture(el, type) {
+            const idx = clamp(parseInt(type, 10) || 0, 0, 8);
+            const row = Math.floor(idx / 3);
+            const col = idx % 3;
+            el.style.backgroundPosition = `${(col / 2) * 100}% ${(row / 2) * 100}%`;
+        }
+
+        function setEntityPosition(el, x, y, width, height) {
+            el.style.width = `${width}px`;
+            el.style.height = `${height}px`;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+        }
+
+        function attachEntityHandlers(element, info) {
+            element.addEventListener('pointerdown', (event) => startDrag(event, info));
+            element.addEventListener('click', (event) => {
+                event.stopPropagation();
+                selectEntity(info);
+            });
+        }
+
+        function selectEntity(info) {
+            selected = info;
+            playfield.querySelectorAll('.entity').forEach((el) => el.classList.remove('selected'));
+            if (!info) {
+                entityPlaceholder.style.display = 'block';
+                Object.values(entitySections).forEach((section) => section.classList.remove('active'));
+                updateEntityListSelection();
+                return;
+            }
+            const selector = info.kind === 'player'
+                ? '.entity.player'
+                : `.entity[data-kind="${info.kind}"][data-index="${info.index}"]`;
+            const el = playfield.querySelector(selector);
+            if (el) el.classList.add('selected');
+            updateEntityForm();
+            updateEntityListSelection();
+        }
+
+        function updateEntityForm() {
+            if (!selected) {
+                entityPlaceholder.style.display = 'block';
+                Object.values(entitySections).forEach((section) => section.classList.remove('active'));
+                return;
+            }
+
+            entityPlaceholder.style.display = 'none';
+            Object.values(entitySections).forEach((section) => section.classList.remove('active'));
+
+            if (selected.kind === 'player') {
+                entitySections.player.classList.add('active');
+                const [x, y] = levelData.player.pos;
+                playerInputs.x.value = Math.round(x);
+                playerInputs.y.value = Math.round(y);
+                playerInputs.health.value = levelData.player.health;
+            } else if (selected.kind === 'planet') {
+                const planet = levelData.planets[selected.index];
+                entitySections.planet.classList.add('active');
+                planetInputs.x.value = Math.round(planet.pos[0]);
+                planetInputs.y.value = Math.round(planet.pos[1]);
+                planetInputs.radius.value = planet.size;
+                planetInputs.type.value = planet.type;
+            } else if (selected.kind === 'enemy') {
+                const enemy = levelData.enemies[selected.index];
+                entitySections.enemy.classList.add('active');
+                enemyInputs.x.value = Math.round(enemy.pos[0]);
+                enemyInputs.y.value = Math.round(enemy.pos[1]);
+                enemyInputs.id.value = enemy.id;
+                enemyInputs.type.value = enemy.type;
+                enemyInputs.difficulty.value = enemy.difficulty;
+                enemyInputs.health.value = enemy.health;
+                enemyInputs.spawnKind.value = enemy.spawn_when.kind;
+                enemyInputs.spawnDelay.value = enemy.spawn_when.delay ?? 0;
+                if (enemy.spawn_when.kind === 'on_start') {
+                    enemyInputs.spawnArg.value = '';
+                    enemyInputs.spawnArg.disabled = true;
+                } else {
+                    enemyInputs.spawnArg.disabled = false;
+                    enemyInputs.spawnArg.value = enemy.spawn_when.arg ?? 0;
+                }
+            }
+        }
+
+        function startDrag(event, info) {
+            event.preventDefault();
+            const target = event.currentTarget;
+            target.setPointerCapture(event.pointerId);
+            const rect = playfield.getBoundingClientRect();
+            const pointerX = event.clientX - rect.left;
+            const pointerY = event.clientY - rect.top;
+            const width = target.offsetWidth;
+            const height = target.offsetHeight;
+            const centerX = parseFloat(target.style.left);
+            const centerY = parseFloat(target.style.top);
+            dragState = {
+                pointerId: event.pointerId,
+                kind: info.kind,
+                index: info.index,
+                offsetX: pointerX - centerX,
+                offsetY: pointerY - centerY,
+                width,
+                height,
+                element: target
+            };
+            target.classList.add('dragging');
+            selectEntity(info);
+
+            target.addEventListener('pointermove', handleDragMove);
+            target.addEventListener('pointerup', endDrag);
+            target.addEventListener('pointercancel', endDrag);
+        }
+
+        function handleDragMove(event) {
+            if (!dragState || event.pointerId !== dragState.pointerId) return;
+            event.preventDefault();
+            const rect = playfield.getBoundingClientRect();
+            const pointerX = event.clientX - rect.left;
+            const pointerY = event.clientY - rect.top;
+            let centerX = pointerX - dragState.offsetX;
+            let centerY = pointerY - dragState.offsetY;
+            const halfW = dragState.width / 2;
+            const halfH = dragState.height / 2;
+            centerX = clamp(centerX, halfW, DISPLAY_W - halfW);
+            centerY = clamp(centerY, halfH, DISPLAY_H - halfH);
+            dragState.element.style.left = `${centerX}px`;
+            dragState.element.style.top = `${centerY}px`;
+            if (dragState.element.classList.contains('enemy')) {
+                const label = dragState.element.querySelector('.enemy-label');
+                if (label) {
+                    label.style.transform = 'translate(-50%, -50%)';
+                }
+            }
+            updateEntityPosDuringDrag(centerX, centerY);
+        }
+
+        function endDrag(event) {
+            if (!dragState || event.pointerId !== dragState.pointerId) return;
+            event.preventDefault();
+            const element = dragState.element;
+            element.releasePointerCapture(event.pointerId);
+            element.removeEventListener('pointermove', handleDragMove);
+            element.removeEventListener('pointerup', endDrag);
+            element.removeEventListener('pointercancel', endDrag);
+            element.classList.remove('dragging');
+            const centerX = parseFloat(element.style.left);
+            const centerY = parseFloat(element.style.top);
+            persistEntityPosition(centerX, centerY);
+            dragState = null;
+        }
+
+        function updateEntityPosDuringDrag(x, y) {
+            if (!selected || !levelData) return;
+            const pos = [Math.round(x), Math.round(y)];
+            if (selected.kind === 'player') {
+                levelData.player.pos = pos;
+                playerInputs.x.value = pos[0];
+                playerInputs.y.value = pos[1];
+            } else if (selected.kind === 'planet') {
+                const planet = levelData.planets[selected.index];
+                planet.pos = pos;
+                planetInputs.x.value = pos[0];
+                planetInputs.y.value = pos[1];
+            } else if (selected.kind === 'enemy') {
+                const enemy = levelData.enemies[selected.index];
+                enemy.pos = pos;
+                enemyInputs.x.value = pos[0];
+                enemyInputs.y.value = pos[1];
+            }
+        }
+
+        function persistEntityPosition(x, y) {
+            if (!selected || !levelData) return;
+            const pos = [Math.round(x), Math.round(y)];
+            if (selected.kind === 'player') {
+                levelData.player.pos = pos;
+            } else if (selected.kind === 'planet') {
+                levelData.planets[selected.index].pos = pos;
+            } else if (selected.kind === 'enemy') {
+                levelData.enemies[selected.index].pos = pos;
+            }
+        }
+
+        playfield.addEventListener('click', (event) => {
+            if (event.target === playfield) {
+                selectEntity(null);
+            }
+        });
+
+        btnNew.addEventListener('click', () => {
+            if (!confirm('Discard the current level and start a new one?')) return;
+            levelData = createDefaultLevel();
+            visibilityState = createVisibilityState(levelData);
+            selected = null;
+            renderAll();
+            showToast('New level created');
+        });
+
+        btnLoad.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            file.text().then(loadLevel).finally(() => {
+                fileInput.value = '';
+            });
+        });
+
+        btnSave.addEventListener('click', () => {
+            if (!levelData) return;
+            const json = JSON.stringify(sanitiseLevel(levelData), null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'level.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Level exported');
+        });
+
+        btnAddPlanet.addEventListener('click', () => {
+            levelData.planets.push({
+                type: 0,
+                size: PLANET_DEFAULT_RADIUS,
+                pos: [DISPLAY_W / 2, DISPLAY_H / 2]
+            });
+            ensureVisibilityState();
+            visibilityState.planets.push(true);
+            renderAll();
+            selectEntity({ kind: 'planet', index: levelData.planets.length - 1 });
+        });
+
+        btnAddEnemy.addEventListener('click', () => {
+            const nextId = generateNextEnemyId();
+            levelData.enemies.push({
+                id: nextId,
+                type: 0,
+                difficulty: 0,
+                health: 20,
+                pos: [DISPLAY_W / 2, DISPLAY_H / 2],
+                spawn_when: { kind: 'on_start', delay: 0 }
+            });
+            ensureVisibilityState();
+            visibilityState.enemies.push(true);
+            renderAll();
+            selectEntity({ kind: 'enemy', index: levelData.enemies.length - 1 });
+        });
+
+        if (btnWorldSettings) {
+            btnWorldSettings.addEventListener('click', () => {
+                openWorldModal();
+            });
+        }
+
+        if (worldModal) {
+            worldModal.addEventListener('click', (event) => {
+                if (event.target === worldModal || event.target === worldModalBackdrop) {
+                    closeWorldModal();
+                }
+            });
+        }
+
+        worldModalDialog?.addEventListener('click', (event) => event.stopPropagation());
+        worldModalClose?.addEventListener('click', () => closeWorldModal());
+        worldModalDismiss?.addEventListener('click', () => closeWorldModal());
+
+        function generateNextEnemyId() {
+            const ids = levelData.enemies.map((e) => e.id || 0);
+            let candidate = ids.length ? Math.max(...ids) + 1 : 1;
+            while (ids.includes(candidate)) candidate += 1;
+            return candidate;
+        }
+
+        goalKillsInput.addEventListener('input', () => {
+            const value = clamp(parseInt(goalKillsInput.value || '1', 10), 1, 255);
+            goalKillsInput.value = value;
+            levelData.kills_goal = value;
+        });
+
+        timeLimitInput?.addEventListener('input', () => {
+            let value = parseInt(timeLimitInput.value || '0', 10);
+            if (Number.isNaN(value) || value < 0) value = 0;
+            if (value > 600) value = 600;
+            timeLimitInput.value = value;
+            levelData.time_limit = value;
+        });
+
+        startTextInput?.addEventListener('input', () => {
+            levelData.start_text = startTextInput.value;
+        });
+
+        ratingInputs.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                const value = Math.max(0, parseInt(input.value || '0', 10));
+                input.value = value;
+                levelData.rating[index] = value;
+            });
+        });
+
+        playerInputs.x.addEventListener('input', () => {
+            const value = clamp(parseInt(playerInputs.x.value || '0', 10), 0, DISPLAY_W);
+            levelData.player.pos[0] = value;
+            renderEntities();
+            selectEntity({ kind: 'player' });
+        });
+        playerInputs.y.addEventListener('input', () => {
+            const value = clamp(parseInt(playerInputs.y.value || '0', 10), 0, DISPLAY_H);
+            levelData.player.pos[1] = value;
+            renderEntities();
+            selectEntity({ kind: 'player' });
+        });
+        playerInputs.health.addEventListener('input', () => {
+            const value = clamp(parseInt(playerInputs.health.value || '1', 10), 1, 65535);
+            levelData.player.health = value;
+        });
+
+        planetInputs.x.addEventListener('input', () => updatePlanetField('x'));
+        planetInputs.y.addEventListener('input', () => updatePlanetField('y'));
+        planetInputs.radius.addEventListener('input', () => updatePlanetField('radius'));
+        planetInputs.type.addEventListener('input', () => updatePlanetField('type'));
+
+        function updatePlanetField(field) {
+            if (!selected || selected.kind !== 'planet') return;
+            const planet = levelData.planets[selected.index];
+            if (field === 'x') {
+                planet.pos[0] = clamp(parseInt(planetInputs.x.value || '0', 10), 0, DISPLAY_W);
+            } else if (field === 'y') {
+                planet.pos[1] = clamp(parseInt(planetInputs.y.value || '0', 10), 0, DISPLAY_H);
+            } else if (field === 'radius') {
+                planet.size = Math.max(1, parseFloat(planetInputs.radius.value || PLANET_DEFAULT_RADIUS));
+            } else if (field === 'type') {
+                planet.type = clamp(parseInt(planetInputs.type.value || '0', 10), 0, 15);
+            }
+            renderEntities();
+            selectEntity({ kind: 'planet', index: selected.index });
+        }
+
+        enemyInputs.x.addEventListener('input', () => updateEnemyField('x'));
+        enemyInputs.y.addEventListener('input', () => updateEnemyField('y'));
+        enemyInputs.id.addEventListener('input', () => updateEnemyField('id'));
+        enemyInputs.type.addEventListener('input', () => updateEnemyField('type'));
+        enemyInputs.difficulty.addEventListener('input', () => updateEnemyField('difficulty'));
+        enemyInputs.health.addEventListener('input', () => updateEnemyField('health'));
+        enemyInputs.spawnKind.addEventListener('change', () => updateEnemyField('spawnKind'));
+        enemyInputs.spawnArg.addEventListener('input', () => updateEnemyField('spawnArg'));
+        enemyInputs.spawnDelay.addEventListener('input', () => updateEnemyField('spawnDelay'));
+
+        function updateEnemyField(field) {
+            if (!selected || selected.kind !== 'enemy') return;
+            const enemy = levelData.enemies[selected.index];
+            if (field === 'x') {
+                enemy.pos[0] = clamp(parseInt(enemyInputs.x.value || '0', 10), 0, DISPLAY_W);
+            } else if (field === 'y') {
+                enemy.pos[1] = clamp(parseInt(enemyInputs.y.value || '0', 10), 0, DISPLAY_H);
+            } else if (field === 'id') {
+                const newId = Math.max(1, parseInt(enemyInputs.id.value || '1', 10));
+                if (levelData.enemies.some((e, idx) => idx !== selected.index && e.id === newId)) {
+                    showToast('Enemy ID already exists');
+                    enemyInputs.id.value = enemy.id;
+                    return;
+                }
+                enemy.id = newId;
+            } else if (field === 'type') {
+                enemy.type = clamp(parseInt(enemyInputs.type.value || '0', 10), 0, 8);
+                enemyInputs.type.value = enemy.type;
+            } else if (field === 'difficulty') {
+                enemy.difficulty = clamp(parseInt(enemyInputs.difficulty.value || '0', 10), 0, 255);
+            } else if (field === 'health') {
+                enemy.health = clamp(parseInt(enemyInputs.health.value || '1', 10), 1, 65535);
+            } else if (field === 'spawnKind') {
+                const kind = enemyInputs.spawnKind.value;
+                enemy.spawn_when.kind = kind;
+                if (kind === 'on_start') {
+                    delete enemy.spawn_when.arg;
+                    enemyInputs.spawnArg.value = '';
+                    enemyInputs.spawnArg.disabled = true;
+                } else {
+                    enemyInputs.spawnArg.disabled = false;
+                    enemy.spawn_when.arg = enemy.spawn_when.arg ?? 0;
+                    enemyInputs.spawnArg.value = enemy.spawn_when.arg;
+                }
+            } else if (field === 'spawnArg') {
+                const kind = enemy.spawn_when.kind;
+                if (kind === 'on_start') return;
+                enemy.spawn_when.arg = parseInt(enemyInputs.spawnArg.value || '0', 10) || 0;
+            } else if (field === 'spawnDelay') {
+                enemy.spawn_when.delay = clamp(parseInt(enemyInputs.spawnDelay.value || '0', 10), 0, 255);
+            }
+            renderEntities();
+            selectEntity({ kind: 'enemy', index: selected.index });
+        }
+
+        function sanitiseLevel(data) {
+            const rating = Array.isArray(data.rating) ? data.rating : [0, 0, 0];
+            const player = data.player || { pos: [DISPLAY_W / 2, DISPLAY_H / 2], health: 100 };
+            const planets = Array.isArray(data.planets) ? data.planets : [];
+            const enemies = Array.isArray(data.enemies) ? data.enemies : [];
+            const rawKillsGoal = data.kills_goal ?? 1;
+            const killsGoal = clamp(parseInt(rawKillsGoal ?? 1, 10) || 1, 1, 255);
+
+            return {
+                version: data.version ?? 1,
+                time_limit: clamp(parseInt(data.time_limit ?? 0, 10) || 0, 0, 600),
+                start_text: data.start_text ?? "",
+                kills_goal: killsGoal,
+                rating: [
+                    Math.max(0, parseInt(rating[0] ?? 0, 10) || 0),
+                    Math.max(0, parseInt(rating[1] ?? 0, 10) || 0),
+                    Math.max(0, parseInt(rating[2] ?? 0, 10) || 0)
+                ],
+                player: {
+                    pos: [
+                        clamp(parseInt(player.pos?.[0] ?? DISPLAY_W / 2, 10) || DISPLAY_W / 2, 0, DISPLAY_W),
+                        clamp(parseInt(player.pos?.[1] ?? DISPLAY_H / 2, 10) || DISPLAY_H / 2, 0, DISPLAY_H)
+                    ],
+                    health: clamp(parseInt(player.health ?? 100, 10) || 100, 1, 65535)
+                },
+                planets: planets.map((planet) => ({
+                    type: clamp(parseInt(planet.type ?? 0, 10) || 0, 0, 15),
+                    size: Math.max(1, parseFloat(planet.size ?? PLANET_DEFAULT_RADIUS) || PLANET_DEFAULT_RADIUS),
+                    pos: [
+                        clamp(parseInt(planet.pos?.[0] ?? DISPLAY_W / 2, 10) || DISPLAY_W / 2, 0, DISPLAY_W),
+                        clamp(parseInt(planet.pos?.[1] ?? DISPLAY_H / 2, 10) || DISPLAY_H / 2, 0, DISPLAY_H)
+                    ]
+                })),
+                enemies: enemies.map((enemy) => {
+                    const spawn = enemy.spawn_when || { kind: 'on_start', delay: 0 };
+                    let spawnKind = spawn.kind || 'on_start';
+                    let spawnDelay = clamp(parseInt(spawn.delay ?? 0, 10) || 0, 0, 255);
+                    if (spawnKind === 'on_timer') {
+                        const legacyBase = parseInt(spawn.arg ?? 0, 10) || 0;
+                        spawnDelay = clamp(legacyBase + spawnDelay, 0, 255);
+                        spawnKind = 'on_start';
+                    }
+                    const normalizedKind = spawnKind === 'on_death' ? 'on_death' : 'on_start';
+                    const cleaned = {
+                        id: Math.max(1, parseInt(enemy.id ?? 1, 10) || 1),
+                        type: clamp(parseInt(enemy.type ?? 0, 10) || 0, 0, 8),
+                        pos: [
+                            clamp(parseInt(enemy.pos?.[0] ?? DISPLAY_W / 2, 10) || DISPLAY_W / 2, 0, DISPLAY_W),
+                            clamp(parseInt(enemy.pos?.[1] ?? DISPLAY_H / 2, 10) || DISPLAY_H / 2, 0, DISPLAY_H)
+                        ],
+                        difficulty: clamp(parseInt(enemy.difficulty ?? 0, 10) || 0, 0, 255),
+                        health: clamp(parseInt(enemy.health ?? 1, 10) || 1, 1, 65535),
+                        spawn_when: {
+                            kind: normalizedKind,
+                            delay: spawnDelay
+                        }
+                    };
+                    if (cleaned.spawn_when.kind === 'on_death') {
+                        cleaned.spawn_when.arg = parseInt(spawn.arg ?? 0, 10) || 0;
+                    }
+                    return cleaned;
+                })
+            };
+        }
+
+    // Initial Setup
+    levelData = createDefaultLevel();
+    visibilityState = createVisibilityState(levelData);
+    renderAll();
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && worldModal?.classList.contains('open')) {
+                event.preventDefault();
+                closeWorldModal();
+                return;
+            }
+
+            const tagName = (event.target instanceof HTMLElement) ? event.target.tagName : '';
+            if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+                return;
+            }
+
+            if (event.key === 'Delete' && selected && selected.kind !== 'player') {
+                if (selected.kind === 'planet') {
+                    levelData.planets.splice(selected.index, 1);
+                    visibilityState?.planets.splice(selected.index, 1);
+                } else if (selected.kind === 'enemy') {
+                    const removedId = levelData.enemies[selected.index].id;
+                    levelData.enemies.splice(selected.index, 1);
+                    visibilityState?.enemies.splice(selected.index, 1);
+                    levelData.enemies.forEach((enemy) => {
+                        if (enemy.spawn_when.kind === 'on_death' && enemy.spawn_when.arg === removedId) {
+                            enemy.spawn_when.arg = 0;
+                        }
+                    });
+                }
+                selected = null;
+                renderAll();
+            }
+        });
+    </script>
+</body>
+</html>

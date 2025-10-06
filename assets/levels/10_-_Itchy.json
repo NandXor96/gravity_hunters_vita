@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "time_limit": 135,
+  "start_text": "It is so Itchy! Kill all the insects.",
+  "kills_goal": 15,
+  "rating": [
+    1600,
+    1875,
+    2000
+  ],
+  "player": {
+    "pos": [
+      122,
+      240
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 0,
+      "size": 80,
+      "pos": [
+        310,
+        360
+      ]
+    },
+    {
+      "type": 0,
+      "size": 80,
+      "pos": [
+        310,
+        120
+      ]
+    },
+    {
+      "type": 14,
+      "size": 59,
+      "pos": [
+        490,
+        240
+      ]
+    },
+    {
+      "type": 14,
+      "size": 59,
+      "pos": [
+        670,
+        241
+      ]
+    },
+    {
+      "type": 1,
+      "size": 64,
+      "pos": [
+        850,
+        240
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 0,
+      "pos": [
+        489,
+        120
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 0,
+      "pos": [
+        489,
+        368
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": 0,
+      "pos": [
+        395,
+        238
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 4,
+      "type": 0,
+      "pos": [
+        581,
+        174
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 2,
+        "arg": 3
+      }
+    },
+    {
+      "id": 5,
+      "type": 0,
+      "pos": [
+        582,
+        309
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 1
+      }
+    },
+    {
+      "id": 6,
+      "type": 0,
+      "pos": [
+        850,
+        140
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 2
+      }
+    },
+    {
+      "id": 7,
+      "type": 0,
+      "pos": [
+        851,
+        347
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 3,
+        "arg": 4
+      }
+    },
+    {
+      "id": 8,
+      "type": 0,
+      "pos": [
+        423,
+        34
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 20
+      }
+    },
+    {
+      "id": 9,
+      "type": 0,
+      "pos": [
+        418,
+        436
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 20
+      }
+    },
+    {
+      "id": 10,
+      "type": 0,
+      "pos": [
+        479,
+        65
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 45
+      }
+    },
+    {
+      "id": 11,
+      "type": 0,
+      "pos": [
+        478,
+        423
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 45
+      }
+    },
+    {
+      "id": 12,
+      "type": 0,
+      "pos": [
+        208,
+        49
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 8
+      }
+    },
+    {
+      "id": 13,
+      "type": 0,
+      "pos": [
+        202,
+        423
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 9
+      }
+    },
+    {
+      "id": 14,
+      "type": 0,
+      "pos": [
+        668,
+        145
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 12
+      }
+    },
+    {
+      "id": 15,
+      "type": 0,
+      "pos": [
+        670,
+        346
+      ],
+      "difficulty": 120,
+      "health": 20,
+      "spawn_when": {
+        "kind": "on_death",
+        "delay": 0,
+        "arg": 13
+      }
+    }
+  ]
+}

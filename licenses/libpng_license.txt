@@ -1,0 +1,24 @@
+libpng License
+--------------
+
+This copy of libpng is provided for use in the Gravity Hunters project.
+
+The PNG Reference Library is supplied "AS IS".  The Contributing Authors
+and Group 42, Inc. disclaim all warranties, expressed or implied,
+including, without limitation, the warranties of merchantability and of
+fitness for any purpose.  The Contributing Authors and Group 42, Inc.
+assume no liability for direct, indirect, incidental, special, exemplary,
+or consequential damages, which may result from the use of the PNG
+Reference Library, even if advised of the possibility of such damage.
+
+Permission is hereby granted to use, copy, modify, and distribute this
+source code, or portions hereof, for any purpose, without fee, subject to
+the following restrictions:
+
+1. The origin of this source code must not be misrepresented.
+2. Altered versions must be plainly marked as such and must not be
+   misrepresented as being the original source.
+3. This Copyright notice may not be removed or altered from any source or
+   altered source distribution.
+
+Additional information is available at https://libpng.sourceforge.io/.

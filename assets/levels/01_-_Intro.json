@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "time_limit": 0,
+  "start_text": "Welcome to the Gravity Hunters, Cadet! Make sure to read the help section first to learn how the controls work. This is your training mission. Try to get familiar with the gravity and eliminate all the training drones. Good luck!",
+  "kills_goal": 8,
+  "rating": [
+    750,
+    800,
+    900
+  ],
+  "player": {
+    "pos": [
+      480,
+      272
+    ],
+    "health": 100
+  },
+  "planets": [
+    {
+      "type": 1,
+      "size": 50,
+      "pos": [
+        658,
+        273
+      ]
+    },
+    {
+      "type": 1,
+      "size": 90,
+      "pos": [
+        209,
+        273
+      ]
+    }
+  ],
+  "enemies": [
+    {
+      "id": 1,
+      "type": 1,
+      "pos": [
+        479,
+        127
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": 1,
+      "pos": [
+        481,
+        435
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": 1,
+      "pos": [
+        729,
+        176
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 4,
+      "type": 1,
+      "pos": [
+        730,
+        371
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 5,
+      "type": 1,
+      "pos": [
+        100,
+        131
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 6,
+      "type": 1,
+      "pos": [
+        101,
+        387
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 7,
+      "type": 1,
+      "pos": [
+        807,
+        268
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    },
+    {
+      "id": 8,
+      "type": 1,
+      "pos": [
+        38,
+        269
+      ],
+      "difficulty": 0,
+      "health": 1,
+      "spawn_when": {
+        "kind": "on_start",
+        "delay": 0
+      }
+    }
+  ]
+}
