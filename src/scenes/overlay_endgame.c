@@ -67,6 +67,7 @@ void overlay_endgame_enter(Scene *s) {
     st->svc = app_services();
     st->selected = 0;
     st->has_level_result = 0;
+    st->input_block_time = 0.5f; /* 500 ms */
     overlay_endgame_copy_saved_to_state(st);
     overlay_endgame_record_campaign_progress(st);
 }
@@ -79,6 +80,10 @@ void overlay_endgame_handle_input(Scene *s, const struct InputState *in) {
     OverlayEndgameState *st = (OverlayEndgameState *)s->state;
     if (!st || !in)
         return;
+    /* ignore inputs while input_block_time is active */
+    if (st->input_block_time > 0.0f) {
+        return;
+    }
     int confirm = in->confirm ? 1 : 0;
     if (confirm && !st->prev_confirm) {
         if (st->has_level_result) {
@@ -96,6 +101,12 @@ void overlay_endgame_handle_input(Scene *s, const struct InputState *in) {
 void overlay_endgame_update(Scene *s, float dt) {
     (void)s;
     (void)dt;
+    OverlayEndgameState *st = (OverlayEndgameState *)s->state;
+    if (st && st->input_block_time > 0.0f) {
+        st->input_block_time -= dt;
+        if (st->input_block_time < 0.0f)
+            st->input_block_time = 0.0f;
+    }
 }
 void overlay_endgame_render(Scene *s, struct Renderer *r) {
     OverlayEndgameState *st = (OverlayEndgameState *)s->state;

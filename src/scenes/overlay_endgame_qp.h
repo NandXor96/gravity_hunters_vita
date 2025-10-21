@@ -5,6 +5,7 @@ typedef struct OverlayEndgameStateQP {
     struct Services *svc;
     int selected;
     bool prev_confirm;
+    float input_block_time;
 } OverlayEndgameStateQP;
 
 void overlay_endgame_qp_enter(Scene *s);

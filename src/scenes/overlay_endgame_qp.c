@@ -28,6 +28,7 @@ void overlay_endgame_qp_enter(Scene *s) {
     s->blocks_under_update = true;
     st->svc = app_services();
     st->selected = 0;
+    st->input_block_time = 0.5f; /* 500 ms */
 }
 void overlay_endgame_qp_leave(Scene *s) {
     OverlayEndgameStateQP *st = (OverlayEndgameStateQP *)s->state;
@@ -37,6 +38,9 @@ void overlay_endgame_qp_leave(Scene *s) {
 void overlay_endgame_qp_handle_input(Scene *s, const struct InputState *in) {
     OverlayEndgameStateQP *st = (OverlayEndgameStateQP *)s->state;
     if (!st || !in)
+        return;
+    /* ignore inputs while input_block_time is active */
+    if (st->input_block_time > 0.0f)
         return;
     int confirm = in->confirm ? 1 : 0;
     if (confirm && !st->prev_confirm) {
@@ -48,7 +52,14 @@ void overlay_endgame_qp_handle_input(Scene *s, const struct InputState *in) {
     st->prev_confirm = confirm;
 }
 void overlay_endgame_qp_update(Scene *s, float dt) {
-    (void)s; (void)dt;
+    OverlayEndgameStateQP *st = (OverlayEndgameStateQP *)s->state;
+    if (!st)
+        return;
+    if (st->input_block_time > 0.0f) {
+        st->input_block_time -= dt;
+        if (st->input_block_time < 0.0f)
+            st->input_block_time = 0.0f;
+    }
 }
 void overlay_endgame_qp_render(Scene *s, struct Renderer *r) {
     OverlayEndgameStateQP *st = (OverlayEndgameStateQP *)s->state;

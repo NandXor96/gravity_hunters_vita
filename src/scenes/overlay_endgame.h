@@ -12,6 +12,8 @@ typedef struct OverlayEndgameState {
     struct Services *svc;
     int selected;
     bool prev_confirm;
+    /* small timeout to ignore accidental confirm presses right after the overlay appears (seconds) */
+    float input_block_time;
     /* final stats */
     int kills;
     int points;
