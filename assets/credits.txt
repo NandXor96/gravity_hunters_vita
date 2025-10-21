@@ -1,4 +1,4 @@
-Gravity Hunters v0.01 - Free PS Vita Homebrew Game
+Gravity Hunters v1.00 - Free PS Vita Homebrew Game
 Copyright (c) 2025 NandXor96
 
 https://github.com/NandXor96/gravity_hunters_vita
