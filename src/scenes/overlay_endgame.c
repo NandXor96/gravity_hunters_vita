@@ -129,8 +129,8 @@ void overlay_endgame_render(Scene *s, struct Renderer *r) {
     const char *reason_text = NULL;
     if (!success) {
         switch (st->fail_reason) {
-        case OVERLAY_ENDGAME_FAIL_TIME:
-            reason_text = "Time is over";
+        case OVERLAY_ENDGAME_FAIL_KILLS:
+            reason_text = "Not enough kills";
             break;
         case OVERLAY_ENDGAME_FAIL_DEATH:
             reason_text = "You died";

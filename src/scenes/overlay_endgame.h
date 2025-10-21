@@ -3,7 +3,7 @@
 
 typedef enum OverlayEndgameFailReason {
     OVERLAY_ENDGAME_FAIL_NONE = 0,
-    OVERLAY_ENDGAME_FAIL_TIME,
+    OVERLAY_ENDGAME_FAIL_KILLS,
     OVERLAY_ENDGAME_FAIL_DEATH,
     OVERLAY_ENDGAME_FAIL_SCORE
 } OverlayEndgameFailReason;
